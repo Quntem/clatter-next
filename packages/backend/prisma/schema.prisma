@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ChannelVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum ChannelRole {
+  MEMBER
+  ADMIN
+}
+
+enum WorkspaceRole {
+  MEMBER
+  MANAGER
+  OWNER
+}
+
+enum userStatus {
+  available
+  appearOffline
+  away
+  busy
+}
+
+model User {
+  id             String                @id @default(uuid())
+  username       String?
+  email          String                @unique
+  keystoneId     String
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @default(now()) @updatedAt
+  keystoneObject Json
+  memberships    WorkspaceMembership[]
+}
+
+model WorkspaceGroup {
+  id          String                     @id @default(uuid())
+  memberships WorkspaceGroupMembership[]
+  name        String
+  workspaceId String
+  workspace   Workspace                  @relation(fields: [workspaceId], references: [id])
+
+  @@unique([workspaceId, name])
+}
+
+model WorkspaceGroupMembership {
+  id                    String              @id @default(uuid())
+  workspaceGroupId      String
+  workspaceMembershipId String
+  workspaceGroup        WorkspaceGroup      @relation(fields: [workspaceGroupId], references: [id])
+  workspaceMembership   WorkspaceMembership @relation(fields: [workspaceMembershipId], references: [id])
+}
+
+model WorkspaceMembership {
+  id               String                     @id @default(uuid())
+  userId           String
+  workspaceId      String
+  name             String
+  profilePicture   String?
+  workspace        Workspace                  @relation(fields: [workspaceId], references: [id])
+  user             User                       @relation(fields: [userId], references: [id])
+  channels         ChannelMembership[]
+  role             WorkspaceRole              @default(MEMBER)
+  status           userStatus                 @default(available)
+  lastStatusChange DateTime                   @default(now())
+  lastSeen         DateTime                   @default(now())
+  statusMessage    String?
+  groups           WorkspaceGroupMembership[]
+}
+
+model ChannelMembership {
+  id         String              @id @default(uuid())
+  channelId  String
+  userId     String
+  role       ChannelRole         @default(MEMBER)
+  channel    Channel             @relation(fields: [channelId], references: [id])
+  membership WorkspaceMembership @relation(fields: [userId], references: [id])
+}
+
+model Workspace {
+  id          String                @id @default(uuid())
+  memberships WorkspaceMembership[]
+  name        String
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @default(now()) @updatedAt
+  image       String?
+  channels    Channel[]
+  groups      WorkspaceGroup[]
+}
+
+model Channel {
+  id          String              @id @default(uuid())
+  name        String
+  workspaceId String
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id])
+  messages    Message[]
+  visibility  ChannelVisibility
+  members     ChannelMembership[]
+
+  @@unique([workspaceId, name])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  content   Json
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id])
+}
