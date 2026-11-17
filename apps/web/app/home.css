@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: oklch(1 0 0);
+  --color-background-2: oklch(0.9 0 0);
+  --color-text-primary: oklch(51.028% 0.00006 271.152);
+  --color-primary: oklch(74.524% 0.13022 234.372);
+  --color-primary-hovered: oklch(78.793% 0.12822 233.757);
+  --color-secondary: oklch(66.967% 0.20919 355.644);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --background-2: oklch(0.9 0 0);
+  --text-primary: oklch(51.028% 0.00006 271.152);
+  --primary: oklch(74.524% 0.13022 234.372);
+  --primary-hovered: oklch(78.793% 0.12822 233.757);
+  --secondary: oklch(66.967% 0.20919 355.644);
+}
+
+html {
+  color: var(--text-primary);
+}
+
+button {
+  cursor: pointer;
+}
+
+button.primary {
+  color: var(--background);
+  background-color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  padding-inline: calc(var(--spacing) * 3);
+  padding-block: calc(var(--spacing) * 1.5);
+  transition: background-color 100ms ease;
+}
+
+button.primary:hover {
+  background-color: var(--primary-hovered);
+}
+
+.text-gradient {
+  background: -webkit-linear-gradient(135deg, var(--secondary), var(--primary));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 20s linear infinite;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}

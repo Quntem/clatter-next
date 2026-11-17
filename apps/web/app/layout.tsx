@@ -4,7 +4,6 @@ import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils";
 
-import "./global.css";
 import { TooltipProvider } from "@workspace/ui/components/tooltip";
 
 const figtree = Figtree({
