@@ -21,7 +21,16 @@ export function AuthProvider({children}: {children: React.JSX.Element}) {
             window.location.href = `${process.env.NEXT_PUBLIC_KEYSTONE_URL}/auth/signin?redirectTo=` + window.location.href
         }
     }, [authState])
+    return <authContext.Provider value={{
+        authState
+    }}>
+        {authState.data !== null && <TrpcProvider authState={authState}>
+            {children}
+        </TrpcProvider>}
+    </authContext.Provider>
+}
 
+export default function TrpcProvider({children, authState}: {children: React.JSX.Element, authState: AuthState}) {
     const [queryClient] = useState(() => new QueryClient());
     const [trpcClient] = useState(() =>
         trpc.createClient({
@@ -30,24 +39,20 @@ export function AuthProvider({children}: {children: React.JSX.Element}) {
                     url: '/trpc',
 
                     // You can pass any HTTP headers you wish here
-                    async headers() {
+                    headers() {
                         return {
-                            authorization: () => authState.data?.sessionId,
+                            authorization: "Bearer " + authState.data?.sessionId,
                         };
                     },
                 }),
             ],
         }),
     );
-    return <authContext.Provider value={{
-        authState
-    }}>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-            <QueryClientProvider client={queryClient}>
-                {children}
-            </QueryClientProvider>
-        </trpc.Provider>
-    </authContext.Provider>
+    return <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+            {children}
+        </QueryClientProvider>
+    </trpc.Provider>
 }
 
 export function useAuthContext() {
