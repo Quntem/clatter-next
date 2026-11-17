@@ -15,6 +15,7 @@ datasource db {
 enum ChannelVisibility {
   PUBLIC
   PRIVATE
+  DIRECT
 }
 
 enum ChannelRole {
@@ -35,15 +36,32 @@ enum userStatus {
   busy
 }
 
+enum TenantWorkspaceVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+model Tenant {
+  id                         String      @id @default(uuid())
+  keystoneId                 String      @unique
+  users                      User[]
+  workspaces                 Workspace[]
+  userAllowWorkspaceCreation Boolean     @default(false)
+  primaryWorkspaceId         String?
+  keystoneObject             Json?
+}
+
 model User {
   id             String                @id @default(uuid())
   username       String?
   email          String                @unique
-  keystoneId     String
+  keystoneId     String                @unique
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @default(now()) @updatedAt
   keystoneObject Json
   memberships    WorkspaceMembership[]
+  tenantId       String?
+  tenant         Tenant?               @relation(fields: [tenantId], references: [id])
 }
 
 model WorkspaceGroup {
@@ -90,34 +108,57 @@ model ChannelMembership {
   membership WorkspaceMembership @relation(fields: [userId], references: [id])
 }
 
+model ExternalChannelConnection {
+  id          String    @id @default(uuid())
+  channelId   String
+  channel     Channel   @relation(fields: [channelId], references: [id])
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+}
+
 model Workspace {
-  id          String                @id @default(uuid())
-  memberships WorkspaceMembership[]
-  name        String
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @default(now()) @updatedAt
-  image       String?
-  channels    Channel[]
-  groups      WorkspaceGroup[]
+  id                  String                      @id @default(uuid())
+  memberships         WorkspaceMembership[]
+  name                String
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @default(now()) @updatedAt
+  image               String?
+  channels            Channel[]
+  slug                String
+  groups              WorkspaceGroup[]
+  tenantId            String?
+  tenant              Tenant?                     @relation(fields: [tenantId], references: [id])
+  tenantVisibility    TenantWorkspaceVisibility   @default(PUBLIC)
+  externalConnections ExternalChannelConnection[]
 }
 
 model Channel {
-  id          String              @id @default(uuid())
-  name        String
-  workspaceId String
-  workspace   Workspace           @relation(fields: [workspaceId], references: [id])
-  messages    Message[]
-  visibility  ChannelVisibility
-  members     ChannelMembership[]
+  id                  String                      @id @default(uuid())
+  name                String
+  workspaceId         String
+  workspace           Workspace                   @relation(fields: [workspaceId], references: [id])
+  messages            Message[]
+  visibility          ChannelVisibility
+  members             ChannelMembership[]
+  externalConnections ExternalChannelConnection[]
+  subChannels         Channel[]                   @relation("SubChannel")
+  parentChannel       Channel?                    @relation("SubChannel", fields: [parentChannelId], references: [id])
+  parentChannelId     String?
 
   @@unique([workspaceId, name])
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  content   Json
-  channelId String
-  channel   Channel  @relation(fields: [channelId], references: [id])
+  id          String    @id @default(uuid())
+  inReplyTo   Message?  @relation("MessageReplies", fields: [inReplyToId], references: [id])
+  inReplyToId String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  content     Json
+  channelId   String
+  channel     Channel   @relation(fields: [channelId], references: [id])
+  replies     Message[] @relation("MessageReplies")
+  reactions   Json?
 }
