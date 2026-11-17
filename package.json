@@ -27,6 +27,7 @@
   ],
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.5",
+    "lucide-react": "^1.74.0",
     "postcss": "^8.5.33",
     "tailwindcss": "^4.3.5"
   }
