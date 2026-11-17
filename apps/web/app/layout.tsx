@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils";
 
 import "./global.css";
+import { TooltipProvider } from "@workspace/ui/components/tooltip";
 
 const figtree = Figtree({
   subsets: ["latin"],
@@ -28,7 +29,7 @@ export default function RootLayout({
       className={cn("antialiased", fontMono.variable, "font-sans", figtree.variable)}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider><TooltipProvider>{children}</TooltipProvider></ThemeProvider>
       </body>
     </html>
   )
