@@ -37,9 +37,9 @@ export default function Page() {
         </div>
         <p className="flex flex-row gap-3 mx-auto text-center font-semibold"><ChevronDown className="animate-down"/>Scroll Down<ChevronDown className="animate-down"/></p>
       </section>
-      <section className="px-[15dvw] my-48">
-        <div className="flex flex-col gap-8">
-          <h2 className="text-5xl font-bold">Free & Open Source<span className="text-gradient font-bold">.</span></h2>
+      <section className="px-[15dvw] my-48 flex flex-col gap-64">
+        <div className="flex flex-col gap-8 w-[90%]">
+          <h2 className="text-5xl font-bold"><span className="text-gradient font-bold">Free</span> & Open Source.</h2>
           <div className="flex flex-row gap-8">
             <img src={"/home/showcases/placeholder.png"} className="h-64 rounded-xl outline-0 drop-shadow-lg transition-all duration-100 ease-in hover:scale-105 hover:outline-background-2 hover:outline-5" />
             <div className="flex flex-col">
@@ -58,6 +58,45 @@ export default function Page() {
                     <SquareArrowUpRightExit className="ml-auto"/>
                   </div>
                 </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Replace this with a video showcasing Clatter with application */}
+        <img src={"/home/showcases/placeholder.png"} className="rounded-xl outline-0 drop-shadow-lg transition-all duration-100 ease-in hover:scale-102 hover:outline-background-2 hover:outline-5" />
+        <div className="flex flex-col gap-8 w-[90%] self-end text-right">
+          <h2 className="text-5xl font-bold"><span className="text-gradient font-bold">Unique</span> Features</h2>
+          <div className="flex flex-row-reverse gap-8">
+            <img src={"/home/showcases/placeholder.png"} className="h-64 rounded-xl outline-0 drop-shadow-lg transition-all duration-100 ease-in hover:scale-105 hover:outline-background-2 hover:outline-5" />
+            <div className="flex flex-col gap-8">
+              <p>
+                Clatter provides many unique and helpful features, free of charge! We believe that all team communication platforms should prioritize features, not AI slop.
+              </p>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-row items-center justify-end bg-background-0 px-6 py-4 cursor-pointer rounded-xl outline-0 drop-shadow-lg transition-all duration-100 ease-in hover:scale-102 hover:outline-background-2 hover:outline-5">
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-2xl font-bold">Channel Ping Groups</h3>
+                    <p>
+                      Ping channel-specific groups of people.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-row items-center justify-end bg-background-0 px-6 py-4 cursor-pointer rounded-xl outline-0 drop-shadow-lg transition-all duration-100 ease-in hover:scale-102 hover:outline-background-2 hover:outline-5">
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-2xl font-bold">Unique Profiles</h3>
+                    <p>
+                      Keep your profile relevant to your workspace.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-row items-center justify-end bg-background-0 px-6 py-4 cursor-pointer rounded-xl outline-0 drop-shadow-lg transition-all duration-100 ease-in hover:scale-102 hover:outline-background-2 hover:outline-5">
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-2xl font-bold">Cross-workspace Messaging</h3>
+                    <p>
+                      Easily set-up collaborations between two workspaces without hassle.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
