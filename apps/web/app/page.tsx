@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown, SquareArrowUpRightExit } from "lucide-react";
 import "./home.css";
 
 export default function Page() {
@@ -16,7 +16,7 @@ export default function Page() {
               <div className="ticker-track">
                 {Array.from({ length: 24 }, (_, i) => i).map((_, i) => (
                   <div key={i} className="flex items-center gap-4 px-8 shrink-0">
-                    <img src={"/home/ticker/placeholder.png"} className="h-[20dvh] rounded-xl outline-5 outline-background drop-shadow-lg transition-all duration-100 ease-in hover:scale-105 hover:outline-background-2"></img>
+                    <img src={"/home/ticker/placeholder.png"} className="h-[20dvh] rounded-xl outline-0 drop-shadow-lg transition-all duration-100 ease-in hover:scale-105 hover:outline-background-2 hover:outline-5"></img>
                   </div>
                 ))}
               </div>
@@ -37,16 +37,28 @@ export default function Page() {
         </div>
         <p className="flex flex-row gap-3 mx-auto text-center font-semibold"><ChevronDown className="animate-down"/>Scroll Down<ChevronDown className="animate-down"/></p>
       </section>
-      <section className="px-[15dvw] py-24">
+      <section className="px-[15dvw] my-48">
         <div className="flex flex-col gap-8">
           <h2 className="text-5xl font-bold">Free & Open Source<span className="text-gradient font-bold">.</span></h2>
           <div className="flex flex-row gap-8">
-            <img src={"/home/showcases/placeholder.png"} className="h-64 rounded-xl" />
-            <div>
+            <img src={"/home/showcases/placeholder.png"} className="h-64 rounded-xl outline-0 drop-shadow-lg transition-all duration-100 ease-in hover:scale-105 hover:outline-background-2 hover:outline-5" />
+            <div className="flex flex-col">
               <p>
-                Clatter is fully open source, available for anyone to contribute to. Every line of code is available for public eyes: for reading, for editing, for contributing.
-                We are also fully free. Enjoy the benefits of having a premium grade communication platform whilst taking the cost of absolutely nothing!
+                Clatter is completely free and fully open source. Team communication platforms should increase efficiency, not try to squeeze every last penny out of you.
               </p>
+              <div className="mt-auto">
+                <a href={"https://github.com/Quntem/clatter-next/"}>
+                  <div className="flex flex-row items-center bg-background-0 px-6 py-4 cursor-pointer rounded-xl outline-0 drop-shadow-lg transition-all duration-100 ease-in hover:scale-102 hover:outline-background-2 hover:outline-5">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-2xl font-bold">Contribute</h3>
+                      <p>
+                        Help develop the future of team communication!
+                      </p>
+                    </div>
+                    <SquareArrowUpRightExit className="ml-auto"/>
+                  </div>
+                </a>
+              </div>
             </div>
           </div>
         </div>
