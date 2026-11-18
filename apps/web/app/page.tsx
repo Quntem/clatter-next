@@ -1,10 +1,10 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import "./home.css";
 
 export default function Page() {
   return (
     <div>
-      <section className="min-h-dvh flex flex-col py-12">
+      <section className="min-h-dvh flex flex-col pt-12 pb-6">
         <header className="flex items-center px-[15dvw]">
           <img width={32} height={32} src={"/home/icon/regular_48x48.png"} alt={"Clatter logo"}></img>
           <p className="ml-3 font-semibold text-lg">Clatter</p>
@@ -35,11 +35,12 @@ export default function Page() {
             </div>
           </div>
         </div>
+        <p className="flex flex-row gap-3 mx-auto text-center font-semibold"><ChevronDown className="animate-down"/>Scroll Down<ChevronDown className="animate-down"/></p>
       </section>
       <section className="px-[15dvw] py-24">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-8">
           <h2 className="text-5xl font-bold">Free & Open Source<span className="text-gradient font-bold">.</span></h2>
-          <div className="flex flex-row gap-12">
+          <div className="flex flex-row gap-8">
             <img src={"/home/showcases/placeholder.png"} className="h-64 rounded-xl" />
             <div>
               <p>
