@@ -22,6 +22,7 @@
   --color-primary: oklch(74.524% 0.13022 234.372);
   --color-primary-hovered: oklch(78.793% 0.12822 233.757);
   --color-secondary: oklch(66.967% 0.20919 355.644);
+  --gradient-brand: linear-gradient(135deg, var(--secondary), var(--primary));
 }
 
 :root {
@@ -66,7 +67,7 @@ button.muted {
 }
 
 .text-gradient {
-  background: -webkit-linear-gradient(135deg, var(--secondary), var(--primary));
+  background: var(--gradient-brand);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -89,4 +90,27 @@ button.muted {
 
 .ticker-track:hover {
   animation-play-state: paused;
+}
+
+@utility outline-gradient {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: calc(var(--outline-gradient-width, 5px) * -1);
+    padding: var(--outline-gradient-width, 5px);
+    border-radius: calc(var(--radius-xl) + var(--outline-gradient-width, 5px));
+    background: var(--gradient-brand);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    opacity: 0;
+    transition: opacity 300ms ease-in-out;
+    pointer-events: none;
+  }
+
+  &[data-active="true"]::after {
+    opacity: 1;
+  }
 }
