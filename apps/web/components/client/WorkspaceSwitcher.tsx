@@ -9,14 +9,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@workspace/ui/components/input"
 import { InputGroup, InputGroupInput, InputGroupText } from "@workspace/ui/components/input-group"
 import { Field, FieldTitle } from "@workspace/ui/components/field"
+import { usePathname, useRouter } from "next/navigation"
 
 export function WorkspaceSwitcherSidebar() {
-    const [workspaceId, setWorkspaceId] = useState(0)
     const workspaces = trpc.workspace.list.useQuery()
+    const router = useRouter()
+    const pathname = usePathname()
 
     return <div className="bg-sidebar w-[70px] border-r-1 h-full flex flex-col items-center gap-4 pt-4">
         {workspaces.data?.map(item => (
-            <WorkspaceSwitcherSidebarItem workspace={item} active={workspaceId == 0} onClick={() => setWorkspaceId(0)} />
+            <WorkspaceSwitcherSidebarItem key={item.workspace.slug} workspace={item} active={pathname.startsWith(`/client/${item.workspace.slug}`)} onClick={() => router.push("/client/" + item.workspace.slug)} />
         ))}
         <CreateWorkspaceDialog workspaces={workspaces} />
     </div>

@@ -1,15 +1,26 @@
+"use client"
+import { trpc } from "@/lib/trpc";
 import { Button } from "@workspace/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@workspace/ui/components/dropdown-menu";
+import { Field, FieldTitle } from "@workspace/ui/components/field";
 import { SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenuButton, SidebarGroupLabel, Sidebar } from "@workspace/ui/components/sidebar";
-import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, UsersIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, SquarePenIcon, BookUserIcon, HashIcon, LockIcon, HandshakeIcon, UserIcon, UserShield, LayoutGridIcon, SparklesIcon } from "lucide-react";
+import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, UsersIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, SquarePenIcon, BookUserIcon, HashIcon, LockIcon, HandshakeIcon, UserIcon, UserShield, LayoutGridIcon, SparklesIcon, PencilIcon, PlusIcon, EyeIcon } from "lucide-react";
+import { Input } from "@workspace/ui/components/input";
+import { Usable, use, useState } from "react";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 
-export default function WorkspaceLayout({children}: {children: React.JSX.Element}) {
+export default function WorkspaceLayout({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string}>}) {
+    const { workspaceslug } = use(params)
+    const [createChannelDialogOpen, setCreateChannelDialogOpen] = useState(false)
+    const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
     return <div className="flex-1 flex flex-row">
+        <CreateChannelDialog open={createChannelDialogOpen} setOpen={setCreateChannelDialogOpen} workspace={workspace} />
         <Sidebar collapsible="none" className="border-r-1 w-[300px] shrink-0">
             <SidebarHeader className="h-[50px] border-b-1 flex flex-row">
                 <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant={"ghost"}>
-                        Workspace<ChevronDownIcon />
+                        {workspace.data?.name}<ChevronDownIcon />
                     </Button>} />
                     <DropdownMenuContent className="w-auto" align={"start"}>
                         <DropdownMenuItem>
@@ -49,9 +60,19 @@ export default function WorkspaceLayout({children}: {children: React.JSX.Element
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <div className="flex-1" />
-                <Button size={"icon"} variant={"ghost"}>
-                    <SquarePenIcon />
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger render={<Button size={"icon"} variant={"ghost"}>
+                        <SquarePenIcon />
+                    </Button>} />
+                    <DropdownMenuContent className="w-full">
+                        <DropdownMenuItem>
+                            <PencilIcon /> Compose
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setCreateChannelDialogOpen(true)}>
+                            <HashIcon /> Create Channel
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </SidebarHeader>
             <SidebarContent className="gap-0">
                 <SidebarGroup>
@@ -71,7 +92,13 @@ export default function WorkspaceLayout({children}: {children: React.JSX.Element
                         Channels
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
-                        <SidebarMenuButton>
+                        {workspace.data?.channels.filter(channel => channel.visibility !== "DIRECT").map(channel => {
+                            return <SidebarMenuButton key={channel.id}>
+                                {channel.visibility == "PRIVATE" ? <LockIcon /> : <HashIcon />}
+                                {channel.name}
+                            </SidebarMenuButton>
+                        })}
+                        {/* <SidebarMenuButton>
                             <HashIcon />
                             channel-1
                         </SidebarMenuButton>
@@ -82,7 +109,7 @@ export default function WorkspaceLayout({children}: {children: React.JSX.Element
                         <SidebarMenuButton>
                             <HandshakeIcon />
                             shared-channel
-                        </SidebarMenuButton>
+                        </SidebarMenuButton> */}
                     </SidebarGroupContent>
                 </SidebarGroup>
                 <SidebarGroup>
@@ -119,4 +146,49 @@ export default function WorkspaceLayout({children}: {children: React.JSX.Element
         </Sidebar>
         {children}
     </div>
+}
+
+function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: ReturnType<typeof trpc.workspace.get.useQuery>}) {
+    const [channelName, setChannelName] = useState("")
+    const [channelVisibility, setChannelVisibility] = useState(null)
+    const createChannel = trpc.channel.create.useMutation({
+        onSuccess: () => {
+            workspace.refetch()
+            setOpen(false)
+        }
+    })
+    return <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>
+                    Create Channel
+                </DialogTitle>
+            </DialogHeader>
+            <Field>
+                <FieldTitle>Channel Name</FieldTitle>
+                <Input placeholder="Channel Name" value={channelName} onChange={ev => setChannelName(ev.target.value)} />
+            </Field>
+            <Field>
+                <FieldTitle>Visibility</FieldTitle>
+                <Select value={channelVisibility} onValueChange={setChannelVisibility}>
+                    <SelectTrigger><SelectValue placeholder="Visibility" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectGroup>
+                            <SelectItem value="PUBLIC">
+                                <EyeIcon /> Public
+                            </SelectItem>
+                            <SelectItem value="PRIVATE">
+                                <LockIcon /> Private
+                            </SelectItem>
+                        </SelectGroup>
+                    </SelectContent>
+                </Select>
+            </Field>
+            <DialogFooter>
+                <Button disabled={channelName == "" || channelVisibility == null || channelName.includes(" ")} onClick={() => {
+                    createChannel.mutate({name: channelName, visibility: channelVisibility, workspaceId: workspace.data.id})
+                }}><PlusIcon />Create</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 }
