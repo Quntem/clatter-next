@@ -230,5 +230,60 @@ export const channelsRouter = t.router({
             ee.emit("channel.message", message)
 
             return message
+        }),
+    
+    delete: authProcedure
+        .input(z.object({channelId: z.string()}))
+        .mutation(async (opts) => {
+            const channel = await prisma.channel.findUnique({
+                where: {
+                    id: opts.input.channelId
+                },
+                include: {
+                    members: true,
+                    workspace: {
+                        include: {
+                            memberships: true
+                        }
+                    }
+                }
+            })
+
+            if (!channel) {
+                throw new TRPCError({
+                    message: "Channel not found",
+                    code: "NOT_FOUND"
+                });
+            }
+
+            const membership = channel.workspace.memberships.find(
+                member => member.userId === opts.ctx.user.id
+            );
+
+            if (!membership) {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }    
+
+            const channelMembership = channel.members.find(
+                member => member.userId === membership.id
+            );
+
+            if (!channelMembership || (channelMembership.role == "MEMBER" && membership.role == "MEMBER") || membership.role == "MEMBER") {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }    
+
+            const deleted = await prisma.channel.delete({
+                where: {
+                    id: channel.id
+                }
+            })
+
+            return deleted
         })
 });

@@ -13,6 +13,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthContext } from "@/lib/auth";
 import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@workspace/ui/components/empty"
+import { CreateChannelDialog } from "@/createChannelDialog";
 
 export default function WorkspaceLayout({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string}>}) {
     const router = useRouter()
@@ -173,47 +174,3 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
     </div>
 }
 
-function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: ReturnType<typeof trpc.workspace.get.useQuery>}) {
-    const [channelName, setChannelName] = useState("")
-    const [channelVisibility, setChannelVisibility] = useState(null)
-    const createChannel = trpc.channel.create.useMutation({
-        onSuccess: () => {
-            workspace.refetch()
-            setOpen(false)
-        }
-    })
-    return <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>
-                    Create Channel
-                </DialogTitle>
-            </DialogHeader>
-            <Field>
-                <FieldTitle>Channel Name</FieldTitle>
-                <Input placeholder="Channel Name" value={channelName} onChange={ev => setChannelName(ev.target.value)} />
-            </Field>
-            <Field>
-                <FieldTitle>Visibility</FieldTitle>
-                <Select value={channelVisibility} onValueChange={setChannelVisibility}>
-                    <SelectTrigger><SelectValue placeholder="Visibility" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            <SelectItem value="PUBLIC">
-                                <EyeIcon /> Public
-                            </SelectItem>
-                            <SelectItem value="PRIVATE">
-                                <LockIcon /> Private
-                            </SelectItem>
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
-            </Field>
-            <DialogFooter>
-                <Button disabled={channelName == "" || channelVisibility == null || channelName.includes(" ")} onClick={() => {
-                    createChannel.mutate({name: channelName, visibility: channelVisibility, workspaceId: workspace.data.id})
-                }}><PlusIcon />Create</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-}
