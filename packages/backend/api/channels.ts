@@ -1,7 +1,7 @@
 
 import z from "zod";
 import { authProcedure, t } from "../trpc";
-import { ChannelVisibility } from "../generated/prisma/enums";
+import { ChannelRole, ChannelVisibility } from "../generated/prisma/enums";
 import { prisma } from "../prisma";
 import { TRPCError } from "@trpc/server";
 import {EventEmitter, on} from "events"
@@ -286,5 +286,120 @@ export const channelsRouter = t.router({
             })
 
             return deleted
+        }),
+    
+    removeUser: authProcedure
+        .input(z.object({membershipId: z.string()}))
+        .mutation(async (opts) => {
+            const targetChannelMembership = await prisma.channelMembership.findUnique({
+                where: {
+                    id: opts.input.membershipId
+                },
+                include: {
+                    channel: {
+                        include: {
+                            members: true,
+                            workspace: {
+                                include: {
+                                    memberships: true
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            })
+
+            if (!targetChannelMembership) {
+                throw new TRPCError({
+                    message: "Membership not found",
+                    code: "NOT_FOUND"
+                });
+            }
+
+            const OwnMembership = targetChannelMembership.channel.workspace.memberships.find(
+                member => member.userId === opts.ctx.user.id
+            );
+
+            if (!OwnMembership) {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }    
+
+            const channelMembership = targetChannelMembership.channel.members.find(
+                member => member.userId === OwnMembership.id
+            );
+
+            if (!channelMembership || (channelMembership.role == "MEMBER" && OwnMembership.role == "MEMBER") || OwnMembership.role == "MEMBER") {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }
+
+            return await prisma.channelMembership.delete({
+                where: {
+                    id: targetChannelMembership.id 
+                }
+            })
+        }),
+    
+    addUser: authProcedure
+        .input(z.object({userId: z.string(), channelId: z.string(), role: z.enum(ChannelRole)}))
+        .mutation(async (opts) => {
+            const channel = await prisma.channel.findUnique({
+                where: {
+                    id: opts.input.channelId
+                },
+                include: {
+                    members: true,
+                    workspace: {
+                        include: {
+                            memberships: true
+                        }
+                    }
+                }
+            })
+
+            if (!channel) {
+                throw new TRPCError({
+                    message: "Channel not found",
+                    code: "NOT_FOUND"
+                });
+            }
+
+            const membership = channel.workspace.memberships.find(
+                member => member.userId === opts.ctx.user.id
+            );
+
+            if (!membership) {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }    
+
+            const channelMembership = channel.members.find(
+                member => member.userId === membership.id
+            );
+
+            if (!channelMembership || (channelMembership.role == "MEMBER" && membership.role == "MEMBER") || membership.role == "MEMBER") {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }
+
+            const newMembership = await prisma.channelMembership.create({
+                data: {
+                    userId: opts.input.userId,
+                    channelId: opts.input.channelId,
+                    role: opts.input.role
+                }
+            })
+
+            return newMembership
         })
 });

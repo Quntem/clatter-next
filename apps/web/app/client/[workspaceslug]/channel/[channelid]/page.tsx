@@ -48,7 +48,8 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
         <div className="w-full p-6 pt-0">
             <InputGroup>
                 <InputGroupTextarea value={inputContent} onChange={ev => setInputContent(ev.target.value)} onKeyDown={(ev) => {
-                    if (!ev.shiftKey && ev.key == "enter") {
+                    if (!ev.shiftKey && ev.key == "Enter") {
+                        ev.preventDefault()
                         sendMessageMutation.mutateAsync({workspaceId: workspace.data?.id, channelId: channelid, content: {
                             blocks: [
                                 {
@@ -109,8 +110,9 @@ function MessageItem({compact=false, message}: {compact?: boolean, message: Mess
             
         </div>}
         <div className="flex flex-col">
-            {!compact && <div className="flex flex-row items-center gap-1">
+            {!compact && <div className="flex flex-row items-center gap-2">
                 <div className="font-semibold text-sm">{message.sentBy.name}</div>
+                <div className="text-sm">{new Date(message.createdAt).toLocaleTimeString()}</div>
                 {/* <CrownIcon size="12" /> */}
             </div>}
             <div>{message?.content?.blocks?.map((block, index) => {
