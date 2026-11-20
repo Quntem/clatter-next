@@ -118,7 +118,7 @@ export default function Page() {
           <div className="flex flex-col gap-4">
             <h2 className="text-6xl font-bold flex flex-row items-end gap-3">
               <span className="text-gradient">Clatter</span>
-              <span className="text-lg opacity-80 font-semibold flex flex-row gap-1 items-center">
+              <span className="text-lg opacity-80 font-semibold flex flex-row gap-1.5 items-center">
                 by <img src={"/home/icon/quntem_24x24.png"}/> Quntem <span className="font-medium opacity-0 transition-opacity duration-500 hover:opacity-50">OpenSource</span>
               </span>
             </h2>
