@@ -153,6 +153,13 @@ export const workspaceRouter = t.router({
                             }
                         }
                     ]
+                },
+                include: {
+                    members: {
+                        include: {
+                            membership: true
+                        }
+                    }
                 }
             });
 

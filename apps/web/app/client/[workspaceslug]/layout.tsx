@@ -145,14 +145,20 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                         Direct Messages
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
-                        <SidebarMenuButton>
+                        {workspace.data?.channels?.filter(channel => channel.visibility == "DIRECT").map(channel => {
+                            return <SidebarMenuButton key={channel.id} onClick={() => router.push(`/client/${workspaceslug}/channel/${channel.id}`)} isActive={pathname == `/client/${workspaceslug}/channel/${channel.id}`}>
+                                <UserIcon />
+                                {channel.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
+                            </SidebarMenuButton>
+                        })}
+                        {/* <SidebarMenuButton>
                             <UserIcon />
                             User
                         </SidebarMenuButton>
                         <SidebarMenuButton>
                             <UserShield />
                             External User
-                        </SidebarMenuButton>
+                        </SidebarMenuButton> */}
                     </SidebarGroupContent>
                 </SidebarGroup>
                 <SidebarGroup>

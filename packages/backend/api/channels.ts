@@ -401,5 +401,122 @@ export const channelsRouter = t.router({
             })
 
             return newMembership
-        })
+        }),
+
+    
+createOrGetDirectMessage: authProcedure
+    .input(z.object({
+        userId: z.string(),
+        workspaceId: z.string()
+    }))
+    .mutation(async (opts) => {
+        const currentUserId = opts.ctx.user.id;
+        const targetUserId = opts.input.userId;
+        const workspaceId = opts.input.workspaceId;
+
+        if (currentUserId === targetUserId) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Cannot create a DM with yourself"
+            });
+        }
+
+        const workspace = await prisma.workspace.findUnique({
+            where: {
+                id: workspaceId
+            },
+            include: {
+                memberships: true
+            }
+        });
+
+        if (!workspace) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Workspace not found"
+            });
+        }
+
+        const currentMembership = workspace.memberships.find(
+            member => member.userId === currentUserId
+        );
+
+        if (!currentMembership) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You are not a member of this workspace"
+            });
+        }
+
+        const targetMembership = workspace.memberships.find(
+            member => member.userId === targetUserId
+        );
+
+        if (!targetMembership) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Target user is not a member of this workspace"
+            });
+        }
+
+        const channel = await prisma.channel.findFirst({
+            where: {
+                workspaceId,
+                visibility: "DIRECT",
+                members: {
+                    every: {
+                        userId: {
+                            in: [
+                                currentMembership.id,
+                                targetMembership.id
+                            ]
+                        }
+                    }
+                },
+                AND: [
+                    {
+                        members: {
+                            some: {
+                                userId: currentMembership.id
+                            }
+                        }
+                    },
+                    {
+                        members: {
+                            some: {
+                                userId: targetMembership.id
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+
+        if (channel) {
+            return channel;
+        }
+
+        return await prisma.channel.create({
+            data: {
+                name: "Direct Message",
+                visibility: "DIRECT",
+                workspaceId,
+                members: {
+                    createMany: {
+                        data: [
+                            {
+                                userId: currentMembership.id,
+                                role: "ADMIN"
+                            },
+                            {
+                                userId: targetMembership.id,
+                                role: "ADMIN"
+                            }
+                        ]
+                    }
+                }
+            }
+        });
+    }),
+
 });

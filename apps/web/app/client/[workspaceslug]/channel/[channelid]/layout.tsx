@@ -15,7 +15,10 @@ import { Usable, use, useState } from "react";
 
 export default function({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
+    const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
+    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
     const channel = trpc.channel.get.useQuery({id: channelid})
+    
     const removeMemberMutaion = trpc.channel.removeUser.useMutation({
         onSuccess: () => {
             channel.refetch()
@@ -25,8 +28,8 @@ export default function({children, params}: {children: React.JSX.Element, params
         <div className="h-[50px] w-full border-b-1 px-2 flex flex-row items-center">
             <Dialog>
                 <DialogTrigger render={<Button variant={"ghost"}>
-                    {channel.data?.visibility == "PRIVATE" ? <LockIcon /> : <HashIcon />}
-                    {channel.data?.name}
+                    {channel.data?.visibility == "PRIVATE" ? <LockIcon /> : channel.data?.visibility == "DIRECT" ? <UserIcon /> : <HashIcon />}
+                    {channel.data?.visibility !== "DIRECT" ? channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
                 </Button>} />
                 <DialogContent className="p-0 gap-0">
                     <DialogHeader className="p-4 pb-2">

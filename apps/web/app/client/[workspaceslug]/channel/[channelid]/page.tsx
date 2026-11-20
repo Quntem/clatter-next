@@ -13,6 +13,7 @@ import { Usable, use, useEffect, useState } from "react";
 export default function({params}: {params: Usable<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
+    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
     const channel = trpc.channel.get.useQuery({id: channelid})
     const [messages, setMessages] = useState<Message[]>([])
     const [inputContent, setInputContent] = useState("")
@@ -34,9 +35,9 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
             <div className="flex-1 flex flex-col px-6 pb-4">
                 <div className="flex-1" />
                 <div className="text-xl mb-1">
-                    #{channel.data?.name}
+                    {channel.data?.visibility !== "DIRECT" ? "#" + channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
                 </div>
-                <div className="mb-4">This is the start of this channel</div>
+                <div className="mb-4">This is the start of this {channel.data?.visibility !== "DIRECT" ? "channel" : "conversation"}</div>
                 <Separator />
             </div>
             {messages?.map((item, index) => {
@@ -61,7 +62,7 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
                             setInputContent("")
                         })
                     }
-                }} rows={1} placeholder={`Message #${channel.data?.name}`} />
+                }} rows={1} placeholder={`Message ${channel.data?.visibility !== "DIRECT" ? "#" + channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}`} />
                 <InputGroupAddon className="flex flex-row" align={"block-end"}>
                     <Button size="icon-sm">
                         <PlusIcon />
