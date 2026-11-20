@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { AuthState, useAuth } from "keystone-lib"
 import { trpc } from "./trpc";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink } from "@trpc/client";
+import { httpBatchLink, httpSubscriptionLink, splitLink } from "@trpc/client";
+import { EventSourcePolyfill } from "event-source-polyfill";
 
 
 type authContextType = {
@@ -35,16 +36,26 @@ export default function TrpcProvider({children, authState}: {children: React.JSX
     const [trpcClient] = useState(() =>
         trpc.createClient({
             links: [
-                httpBatchLink({
-                    url: '/trpc',
-
-                    // You can pass any HTTP headers you wish here
-                    headers() {
-                        return {
-                            authorization: "Bearer " + authState.data?.sessionId,
-                        };
-                    },
-                }),
+                splitLink({
+                    condition: (op) => op.type === 'subscription',
+                    true: httpSubscriptionLink({
+                        url: '/trpc',
+                        EventSource: EventSourcePolyfill,
+                        eventSourceOptions: () => ({
+                            headers: {
+                                authorization: authState.data?.sessionId ? "Bearer " + authState.data.sessionId : ""
+                            }
+                        })
+                    }),
+                    false: httpBatchLink({
+                        url: '/trpc',
+                        headers() {
+                            return {
+                                authorization: "Bearer " + authState.data?.sessionId,
+                            };
+                        },
+                    }),
+                })
             ],
         }),
     );

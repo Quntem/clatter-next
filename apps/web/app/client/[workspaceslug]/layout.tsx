@@ -5,17 +5,43 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@workspace/ui/components/dropdown-menu";
 import { Field, FieldTitle } from "@workspace/ui/components/field";
 import { SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenuButton, SidebarGroupLabel, Sidebar } from "@workspace/ui/components/sidebar";
-import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, UsersIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, SquarePenIcon, BookUserIcon, HashIcon, LockIcon, HandshakeIcon, UserIcon, UserShield, LayoutGridIcon, SparklesIcon, PencilIcon, PlusIcon, EyeIcon } from "lucide-react";
+import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, UsersIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, SquarePenIcon, BookUserIcon, HashIcon, LockIcon, HandshakeIcon, UserIcon, UserShield, LayoutGridIcon, SparklesIcon, PencilIcon, PlusIcon, EyeIcon, ShieldXIcon } from "lucide-react";
 import { Input } from "@workspace/ui/components/input";
 import { Usable, use, useState } from "react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
+import { usePathname, useRouter } from "next/navigation";
+import { useAuthContext } from "@/lib/auth";
+import { InviteUserDialog } from "@/components/client/inviteUserDialog";
+import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@workspace/ui/components/empty"
+import { CreateChannelDialog } from "@/createChannelDialog";
 
 export default function WorkspaceLayout({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string}>}) {
+    const router = useRouter()
+    const pathname = usePathname()
     const { workspaceslug } = use(params)
     const [createChannelDialogOpen, setCreateChannelDialogOpen] = useState(false)
+    const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
+    const auth = useAuthContext()
+    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    if (workspace.isError || membership.isError) {
+        return <div className="w-full h-full flex flex-col items-center justify-center">
+            <Empty>
+                <EmptyMedia variant={"icon"}>
+                    <ShieldXIcon />
+                </EmptyMedia>
+                <EmptyContent>
+                    <EmptyTitle>Error</EmptyTitle>
+                    <EmptyDescription>
+                        {workspace.error.message}
+                    </EmptyDescription>
+                </EmptyContent>
+            </Empty>
+        </div>
+    }
     return <div className="flex-1 flex flex-row">
         <CreateChannelDialog open={createChannelDialogOpen} setOpen={setCreateChannelDialogOpen} workspace={workspace} />
+        <InviteUserDialog open={inviteUserDialogOpen} setOpen={setInviteUserDialogOpen} workspace={workspace} />
         <Sidebar collapsible="none" className="border-r-1 w-[300px] shrink-0">
             <SidebarHeader className="h-[50px] border-b-1 flex flex-row">
                 <DropdownMenu>
@@ -23,7 +49,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                         {workspace.data?.name}<ChevronDownIcon />
                     </Button>} />
                     <DropdownMenuContent className="w-auto" align={"start"}>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem disabled={membership.data?.role == "MEMBER"} onClick={() => setInviteUserDialogOpen(true)}>
                             <UserPlusIcon />Invite User
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -45,7 +71,9 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                                     Users and Groups
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                    window.open("/admin/" + workspaceslug, "_blank")
+                                }}>
                                     <ExternalLinkIcon />Admin Center
                                 </DropdownMenuItem>
                             </DropdownMenuSubContent>
@@ -77,7 +105,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
             <SidebarContent className="gap-0">
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenuButton>
+                        <SidebarMenuButton onClick={() => router.push(`/client/${workspaceslug}/directory`)} isActive={pathname == `/client/${workspaceslug}/directory`}>
                             <BookUserIcon />
                             Directory
                         </SidebarMenuButton>
@@ -93,7 +121,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         {workspace.data?.channels.filter(channel => channel.visibility !== "DIRECT").map(channel => {
-                            return <SidebarMenuButton key={channel.id}>
+                            return <SidebarMenuButton key={channel.id} onClick={() => router.push(`/client/${workspaceslug}/channel/${channel.id}`)} isActive={pathname == `/client/${workspaceslug}/channel/${channel.id}`}>
                                 {channel.visibility == "PRIVATE" ? <LockIcon /> : <HashIcon />}
                                 {channel.name}
                             </SidebarMenuButton>
@@ -148,47 +176,3 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
     </div>
 }
 
-function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: ReturnType<typeof trpc.workspace.get.useQuery>}) {
-    const [channelName, setChannelName] = useState("")
-    const [channelVisibility, setChannelVisibility] = useState(null)
-    const createChannel = trpc.channel.create.useMutation({
-        onSuccess: () => {
-            workspace.refetch()
-            setOpen(false)
-        }
-    })
-    return <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>
-                    Create Channel
-                </DialogTitle>
-            </DialogHeader>
-            <Field>
-                <FieldTitle>Channel Name</FieldTitle>
-                <Input placeholder="Channel Name" value={channelName} onChange={ev => setChannelName(ev.target.value)} />
-            </Field>
-            <Field>
-                <FieldTitle>Visibility</FieldTitle>
-                <Select value={channelVisibility} onValueChange={setChannelVisibility}>
-                    <SelectTrigger><SelectValue placeholder="Visibility" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            <SelectItem value="PUBLIC">
-                                <EyeIcon /> Public
-                            </SelectItem>
-                            <SelectItem value="PRIVATE">
-                                <LockIcon /> Private
-                            </SelectItem>
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
-            </Field>
-            <DialogFooter>
-                <Button disabled={channelName == "" || channelVisibility == null || channelName.includes(" ")} onClick={() => {
-                    createChannel.mutate({name: channelName, visibility: channelVisibility, workspaceId: workspace.data.id})
-                }}><PlusIcon />Create</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-}
