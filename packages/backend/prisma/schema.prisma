@@ -56,7 +56,7 @@ model WorkspaceInvite {
   workspace   Workspace             @relation(fields: [workspaceId], references: [id])
   status      WorkspaceInviteStatus @default(PENDING)
   invitedById String?
-  invitedBy   WorkspaceMembership?  @relation(fields: [invitedById], references: [id], name: "InvitedBy")
+  invitedBy   WorkspaceMembership?  @relation(fields: [invitedById], references: [id], name: "InvitedBy", onDelete: SetNull)
   
   @@unique([userId, workspaceId])
 }
@@ -81,7 +81,7 @@ model User {
   keystoneObject Json
   memberships    WorkspaceMembership[]
   tenantId       String?
-  tenant         Tenant?               @relation(fields: [tenantId], references: [id])
+  tenant         Tenant?               @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   invites        WorkspaceInvite[]
 }
 
@@ -91,7 +91,7 @@ model WorkspaceGroup {
   name        String
   displayName String
   workspaceId String
-  workspace   Workspace                  @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, name])
 }
@@ -100,8 +100,8 @@ model WorkspaceGroupMembership {
   id                    String              @id @default(uuid())
   workspaceGroupId      String
   workspaceMembershipId String
-  workspaceGroup        WorkspaceGroup      @relation(fields: [workspaceGroupId], references: [id])
-  workspaceMembership   WorkspaceMembership @relation(fields: [workspaceMembershipId], references: [id])
+  workspaceGroup        WorkspaceGroup      @relation(fields: [workspaceGroupId], references: [id], onDelete: Cascade)
+  workspaceMembership   WorkspaceMembership @relation(fields: [workspaceMembershipId], references: [id], onDelete: Cascade)
 }
 
 model WorkspaceMembership {
@@ -121,6 +121,7 @@ model WorkspaceMembership {
   groups           WorkspaceGroupMembership[]
   messages         Message[]                  @relation("MessageSentBy")
   invited          WorkspaceInvite[]          @relation("InvitedBy")
+  deactivated      Boolean                    @default(false)
 
   @@unique([userId, workspaceId])
 }
@@ -130,16 +131,16 @@ model ChannelMembership {
   channelId  String
   userId     String
   role       ChannelRole         @default(MEMBER)
-  channel    Channel             @relation(fields: [channelId], references: [id])
-  membership WorkspaceMembership @relation(fields: [userId], references: [id])
+  channel    Channel             @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  membership WorkspaceMembership @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ExternalChannelConnection {
   id          String    @id @default(uuid())
   channelId   String
-  channel     Channel   @relation(fields: [channelId], references: [id])
+  channel     Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @default(now()) @updatedAt
 }
@@ -155,7 +156,7 @@ model Workspace {
   slug                String                      @unique
   groups              WorkspaceGroup[]
   tenantId            String?
-  tenant              Tenant?                     @relation(fields: [tenantId], references: [id])
+  tenant              Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   tenantVisibility    TenantWorkspaceVisibility   @default(PUBLIC)
   externalConnections ExternalChannelConnection[]
   invites             WorkspaceInvite[]
@@ -165,13 +166,13 @@ model Channel {
   id                  String                      @id @default(uuid())
   name                String
   workspaceId         String
-  workspace           Workspace                   @relation(fields: [workspaceId], references: [id])
+  workspace           Workspace                   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   messages            Message[]
   visibility          ChannelVisibility
   members             ChannelMembership[]
   externalConnections ExternalChannelConnection[]
   subChannels         Channel[]                   @relation("SubChannel")
-  parentChannel       Channel?                    @relation("SubChannel", fields: [parentChannelId], references: [id])
+  parentChannel       Channel?                    @relation("SubChannel", fields: [parentChannelId], references: [id], onDelete: Cascade)
   parentChannelId     String?
   default             Boolean                     @default(false)
   required            Boolean                     @default(false)
@@ -181,15 +182,15 @@ model Channel {
 
 model Message {
   id          String              @id @default(uuid())
-  inReplyTo   Message?            @relation("MessageReplies", fields: [inReplyToId], references: [id])
+  inReplyTo   Message?            @relation("MessageReplies", fields: [inReplyToId], references: [id], onDelete: Cascade)
   inReplyToId String?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @default(now()) @updatedAt
   content     Json
   channelId   String
-  channel     Channel             @relation(fields: [channelId], references: [id])
+  channel     Channel             @relation(fields: [channelId], references: [id], onDelete: Cascade)
   replies     Message[]           @relation("MessageReplies")
   reactions   Json?
   sentById    String
-  sentBy      WorkspaceMembership @relation("MessageSentBy", fields: [sentById], references: [id])
+  sentBy      WorkspaceMembership @relation("MessageSentBy", fields: [sentById], references: [id], onDelete: Cascade)
 }

@@ -5,12 +5,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@workspace/ui/components/dropdown-menu";
 import { Field, FieldTitle } from "@workspace/ui/components/field";
 import { SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenuButton, SidebarGroupLabel, Sidebar } from "@workspace/ui/components/sidebar";
-import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, UsersIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, SquarePenIcon, BookUserIcon, HashIcon, LockIcon, HandshakeIcon, UserIcon, UserShield, LayoutGridIcon, SparklesIcon, PencilIcon, PlusIcon, EyeIcon } from "lucide-react";
+import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, UsersIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, SquarePenIcon, BookUserIcon, HashIcon, LockIcon, HandshakeIcon, UserIcon, UserShield, LayoutGridIcon, SparklesIcon, PencilIcon, PlusIcon, EyeIcon, ShieldXIcon } from "lucide-react";
 import { Input } from "@workspace/ui/components/input";
 import { Usable, use, useState } from "react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthContext } from "@/lib/auth";
+import { InviteUserDialog } from "@/components/client/inviteUserDialog";
+import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@workspace/ui/components/empty"
 
 export default function WorkspaceLayout({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string}>}) {
     const router = useRouter()
@@ -21,6 +23,21 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
     const auth = useAuthContext()
     const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    if (workspace.isError || membership.isError) {
+        return <div className="w-full h-full flex flex-col items-center justify-center">
+            <Empty>
+                <EmptyMedia variant={"icon"}>
+                    <ShieldXIcon />
+                </EmptyMedia>
+                <EmptyContent>
+                    <EmptyTitle>Error</EmptyTitle>
+                    <EmptyDescription>
+                        {workspace.error.message}
+                    </EmptyDescription>
+                </EmptyContent>
+            </Empty>
+        </div>
+    }
     return <div className="flex-1 flex flex-row">
         <CreateChannelDialog open={createChannelDialogOpen} setOpen={setCreateChannelDialogOpen} workspace={workspace} />
         <InviteUserDialog open={inviteUserDialogOpen} setOpen={setInviteUserDialogOpen} workspace={workspace} />
@@ -85,7 +102,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
             <SidebarContent className="gap-0">
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenuButton>
+                        <SidebarMenuButton onClick={() => router.push(`/client/${workspaceslug}/directory`)} isActive={pathname == `/client/${workspaceslug}/directory`}>
                             <BookUserIcon />
                             Directory
                         </SidebarMenuButton>
@@ -196,34 +213,6 @@ function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, setOpen
                 <Button disabled={channelName == "" || channelVisibility == null || channelName.includes(" ")} onClick={() => {
                     createChannel.mutate({name: channelName, visibility: channelVisibility, workspaceId: workspace.data.id})
                 }}><PlusIcon />Create</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-}
-
-function InviteUserDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: ReturnType<typeof trpc.workspace.get.useQuery>}) {
-    const [userEmail, setUserEmail] = useState("")
-    const inviteMember = trpc.workspace.invite.useMutation({
-        onSuccess: () => {
-            workspace.refetch()
-            setOpen(false)
-        }
-    })
-    return <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Invite User To "{workspace?.data?.name}"</DialogTitle>
-            </DialogHeader>
-            <Field>
-                <FieldTitle>Email</FieldTitle>
-                <Input placeholder="Email" value={userEmail} onChange={ev => setUserEmail(ev.target.value)} />
-            </Field>
-            <DialogFooter>
-                <Button onClick={() => {
-                    inviteMember.mutate({email: userEmail, workspaceId: workspace.data.id})
-                }}>
-                    <PlusIcon />Add User
-                </Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

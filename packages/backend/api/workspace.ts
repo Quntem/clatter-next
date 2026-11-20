@@ -10,7 +10,8 @@ export const workspaceRouter = t.router({
         .query(async (opts) => {
             return await prisma.workspaceMembership.findMany({
                 where: {
-                    userId: opts.ctx.user.id
+                    userId: opts.ctx.user.id,
+                    deactivated: false
                 },
                 include: {
                     workspace: true
@@ -128,7 +129,7 @@ export const workspaceRouter = t.router({
                 member => member.userId === opts.ctx.user.id
             );
 
-            if (!membership) {
+            if (!membership || membership.deactivated) {
                 throw new TRPCError({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
@@ -220,6 +221,7 @@ export const workspaceRouter = t.router({
 
             return invite
         }),
+
     getMembership: authProcedure
         .input(z.object({workspaceId: z.string(), userId: z.string().optional()}))
         .query(async (opts) => {
@@ -241,5 +243,55 @@ export const workspaceRouter = t.router({
             })
             
             return membership
+        }),
+
+    modifyUserActivation: authProcedure
+        .input(z.object({membershipId: z.string(), action: z.enum(["ACTIVATE", "DEACTIVATE"])}))
+        .mutation(async (opts) => {
+            const membership = await prisma.workspaceMembership.findUnique({
+                where: {
+                    id: opts.input.membershipId
+                },
+                include: {
+                    workspace: {
+                        include: {
+                            memberships: {
+                                include: {
+                                    user: true
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+
+            if (!membership) {
+                throw new TRPCError({
+                    message: "Membership not found",
+                    code: "NOT_FOUND"
+                });
+            }
+
+            const ownMembership = membership.workspace.memberships.find(
+                member => member.userId === opts.ctx.user.id
+            );
+
+            if (!ownMembership || ownMembership.role == "MEMBER") {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }
+
+            const modified = await prisma.workspaceMembership.update({
+                where: {
+                    id: opts.input.membershipId
+                },
+                data: {
+                    deactivated: opts.input.action == "DEACTIVATE"
+                }
+            })
+
+            return modified
         })
 });
