@@ -22,7 +22,7 @@
   --color-primary: oklch(74.524% 0.13022 234.372);
   --color-primary-hovered: oklch(78.793% 0.12822 233.757);
   --color-secondary: oklch(66.967% 0.20919 355.644);
-  --gradient-brand: linear-gradient(135deg, var(--secondary), var(--primary));
+  --gradient-brand: linear-gradient(135deg, var(--primary), var(--secondary));
 }
 
 :root {

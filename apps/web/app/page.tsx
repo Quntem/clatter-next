@@ -113,11 +113,11 @@ export default function Page() {
           </div>
         </div>
       </section>
-      <footer className="px-[10dvw] p-48 bg-background-1 flex flex-col gap-12">
+      <footer className="px-[10dvw] p-48 bg-background-0 flex flex-col gap-12">
         <div className="flex flex-row items-center gap-4">
           <div className="flex flex-col gap-4">
             <h2 className="text-6xl font-bold flex flex-row items-end gap-3">
-              Clatter 
+              <span className="text-gradient">Clatter</span>
               <span className="text-lg opacity-80 font-semibold flex flex-row gap-1 items-center">
                 by <img src={"/home/icon/quntem_24x24.png"}/> Quntem <span className="font-medium opacity-0 transition-opacity duration-500 hover:opacity-50">OpenSource</span>
               </span>
