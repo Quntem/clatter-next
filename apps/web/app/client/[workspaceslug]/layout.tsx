@@ -71,7 +71,9 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                                     Users and Groups
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                    window.open("/admin/" + workspaceslug, "_blank")
+                                }}>
                                     <ExternalLinkIcon />Admin Center
                                 </DropdownMenuItem>
                             </DropdownMenuSubContent>

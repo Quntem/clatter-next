@@ -51,7 +51,8 @@ export const channelsRouter = t.router({
                     workspaceId: opts.input.workspaceId,
                     members: {
                         create: {
-                            userId: membership.id
+                            userId: membership.id,
+                            role: "ADMIN"
                         }
                     }
                 },
@@ -66,7 +67,7 @@ export const channelsRouter = t.router({
                 }
             });
         }),
-
+    
     get: authProcedure
         .input(z.object({
             id: z.string()

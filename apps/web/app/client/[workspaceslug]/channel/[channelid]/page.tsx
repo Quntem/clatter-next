@@ -4,7 +4,9 @@ import { Message } from "@workspace/backend/generated/prisma/client";
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@workspace/ui/components/input-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { Separator } from "@workspace/ui/components/separator";
+import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@workspace/ui/components/ui/emoji-picker";
 import { CrownIcon, PlusIcon, SendIcon, SmileIcon } from "lucide-react";
 import { Usable, use, useEffect, useState } from "react";
 
@@ -45,14 +47,41 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
         </div>
         <div className="w-full p-6 pt-0">
             <InputGroup>
-                <InputGroupTextarea value={inputContent} onChange={ev => setInputContent(ev.target.value)} rows={1} placeholder="Message #Channel" />
+                <InputGroupTextarea value={inputContent} onChange={ev => setInputContent(ev.target.value)} onKeyDown={(ev) => {
+                    if (!ev.shiftKey && ev.key == "enter") {
+                        sendMessageMutation.mutateAsync({workspaceId: workspace.data?.id, channelId: channelid, content: {
+                            blocks: [
+                                {
+                                    type: "text",
+                                    content: inputContent
+                                }
+                            ]
+                        }}).then(() => {
+                            setInputContent("")
+                        })
+                    }
+                }} rows={1} placeholder={`Message #${channel.data?.name}`} />
                 <InputGroupAddon className="flex flex-row" align={"block-end"}>
                     <Button size="icon-sm">
                         <PlusIcon />
                     </Button>
-                    <Button size="icon-sm" variant={"ghost"}>
-                        <SmileIcon />
-                    </Button>
+                    <Popover>
+                        <PopoverTrigger render={<Button size="icon-sm" variant={"ghost"}>
+                            <SmileIcon />
+                        </Button>} />
+                        <PopoverContent className={"p-0 w-fit"}>
+                            <EmojiPicker
+                                className="h-[342px]"
+                                onEmojiSelect={({ emoji }) => {
+                                    setInputContent(inputContent + emoji)
+                                }}
+                            >
+                                <EmojiPickerSearch />
+                                <EmojiPickerContent />
+                                <EmojiPickerFooter />
+                            </EmojiPicker>
+                        </PopoverContent>
+                    </Popover>
                     <div className="flex-1" />
                     <Button size="icon-sm" onClick={() => {
                         sendMessageMutation.mutateAsync({workspaceId: workspace.data?.id, channelId: channelid, content: {
