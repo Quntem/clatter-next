@@ -10,15 +10,20 @@ import { Input } from "@workspace/ui/components/input";
 import { Usable, use, useState } from "react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { usePathname, useRouter } from "next/navigation";
+import { useAuthContext } from "@/lib/auth";
 
 export default function WorkspaceLayout({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string}>}) {
     const router = useRouter()
     const pathname = usePathname()
     const { workspaceslug } = use(params)
     const [createChannelDialogOpen, setCreateChannelDialogOpen] = useState(false)
+    const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
+    const auth = useAuthContext()
+    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
     return <div className="flex-1 flex flex-row">
         <CreateChannelDialog open={createChannelDialogOpen} setOpen={setCreateChannelDialogOpen} workspace={workspace} />
+        <InviteUserDialog open={inviteUserDialogOpen} setOpen={setInviteUserDialogOpen} workspace={workspace} />
         <Sidebar collapsible="none" className="border-r-1 w-[300px] shrink-0">
             <SidebarHeader className="h-[50px] border-b-1 flex flex-row">
                 <DropdownMenu>
@@ -26,7 +31,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                         {workspace.data?.name}<ChevronDownIcon />
                     </Button>} />
                     <DropdownMenuContent className="w-auto" align={"start"}>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem disabled={membership.data?.role == "MEMBER"} onClick={() => setInviteUserDialogOpen(true)}>
                             <UserPlusIcon />Invite User
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -191,6 +196,34 @@ function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, setOpen
                 <Button disabled={channelName == "" || channelVisibility == null || channelName.includes(" ")} onClick={() => {
                     createChannel.mutate({name: channelName, visibility: channelVisibility, workspaceId: workspace.data.id})
                 }}><PlusIcon />Create</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+}
+
+function InviteUserDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: ReturnType<typeof trpc.workspace.get.useQuery>}) {
+    const [userEmail, setUserEmail] = useState("")
+    const inviteMember = trpc.workspace.invite.useMutation({
+        onSuccess: () => {
+            workspace.refetch()
+            setOpen(false)
+        }
+    })
+    return <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Invite User To "{workspace?.data?.name}"</DialogTitle>
+            </DialogHeader>
+            <Field>
+                <FieldTitle>Email</FieldTitle>
+                <Input placeholder="Email" value={userEmail} onChange={ev => setUserEmail(ev.target.value)} />
+            </Field>
+            <DialogFooter>
+                <Button onClick={() => {
+                    inviteMember.mutate({email: userEmail, workspaceId: workspace.data.id})
+                }}>
+                    <PlusIcon />Add User
+                </Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
