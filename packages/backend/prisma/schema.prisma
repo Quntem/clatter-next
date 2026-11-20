@@ -98,6 +98,7 @@ model WorkspaceMembership {
   lastSeen         DateTime                   @default(now())
   statusMessage    String?
   groups           WorkspaceGroupMembership[]
+  messages         Message[]                  @relation("MessageSentBy")
 }
 
 model ChannelMembership {
@@ -152,14 +153,16 @@ model Channel {
 }
 
 model Message {
-  id          String    @id @default(uuid())
-  inReplyTo   Message?  @relation("MessageReplies", fields: [inReplyToId], references: [id])
+  id          String              @id @default(uuid())
+  inReplyTo   Message?            @relation("MessageReplies", fields: [inReplyToId], references: [id])
   inReplyToId String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now()) @updatedAt
   content     Json
   channelId   String
-  channel     Channel   @relation(fields: [channelId], references: [id])
-  replies     Message[] @relation("MessageReplies")
+  channel     Channel             @relation(fields: [channelId], references: [id])
+  replies     Message[]           @relation("MessageReplies")
   reactions   Json?
+  sentById    String
+  sentBy      WorkspaceMembership @relation("MessageSentBy", fields: [sentById], references: [id])
 }

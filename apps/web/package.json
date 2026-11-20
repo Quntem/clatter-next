@@ -16,6 +16,7 @@
     "@trpc/client": "^11.28.3",
     "@trpc/react-query": "^11.28.3",
     "@workspace/ui": "workspace:*",
+    "event-source-polyfill": "^1.0.31",
     "keystone-lib": "^1.3.0",
     "lucide-react": "^1.73.0",
     "next": "16.4.5",

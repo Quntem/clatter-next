@@ -9,8 +9,11 @@ import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, 
 import { Input } from "@workspace/ui/components/input";
 import { Usable, use, useState } from "react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
+import { usePathname, useRouter } from "next/navigation";
 
 export default function WorkspaceLayout({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string}>}) {
+    const router = useRouter()
+    const pathname = usePathname()
     const { workspaceslug } = use(params)
     const [createChannelDialogOpen, setCreateChannelDialogOpen] = useState(false)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
@@ -93,7 +96,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         {workspace.data?.channels.filter(channel => channel.visibility !== "DIRECT").map(channel => {
-                            return <SidebarMenuButton key={channel.id}>
+                            return <SidebarMenuButton key={channel.id} onClick={() => router.push(`/client/${workspaceslug}/channel/${channel.id}`)} isActive={pathname == `/client/${workspaceslug}/channel/${channel.id}`}>
                                 {channel.visibility == "PRIVATE" ? <LockIcon /> : <HashIcon />}
                                 {channel.name}
                             </SidebarMenuButton>
