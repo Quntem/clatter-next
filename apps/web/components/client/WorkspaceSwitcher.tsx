@@ -17,7 +17,7 @@ export function WorkspaceSwitcherSidebar() {
     const router = useRouter()
     const pathname = usePathname()
 
-    return <div className="bg-sidebar w-[70px] border-r-1 h-full flex flex-col items-center gap-4 pt-4">
+    return <div className="bg-sidebar w-17.5 border-r h-full flex flex-col items-center gap-4 pt-4">
         {workspaces.data?.map(item => (
             <WorkspaceSwitcherSidebarItem key={item.workspace.slug} workspace={item} active={pathname.startsWith(`/client/${item.workspace.slug}`)} onClick={() => router.push("/client/" + item.workspace.slug)} />
         ))}
@@ -39,7 +39,7 @@ export function CreateWorkspaceDialog({workspaces}: {workspaces: ReturnType<type
     })
     return <>
         <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant={"outline"} className="w-[40px] h-[40px]">
+            <DropdownMenuTrigger render={<Button variant={"outline"} className="w-10 h-10 cursor-pointer">
                 <PlusIcon />
             </Button>} />
             <DropdownMenuContent className="w-auto">

@@ -73,7 +73,7 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
                         </Button>} />
                         <PopoverContent className={"p-0 w-fit"}>
                             <EmojiPicker
-                                className="h-[342px]"
+                                className="h-85.5"
                                 onEmojiSelect={({ emoji }) => {
                                     setInputContent(inputContent + emoji)
                                 }}
