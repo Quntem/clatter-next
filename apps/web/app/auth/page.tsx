@@ -44,6 +44,7 @@ export default function Page() {
 
   return (
     <div>
+      <title>Authentication - Clatter</title>
       <a href={"./"}><ArrowLeft className="fixed top-6 left-6" /></a>
       <div className="flex flex-col gap-12 items-center py-[10dvh] text-center h-dvh">
         <div className="flex flex-col items-center gap-4">

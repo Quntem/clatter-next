@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ChevronDown, SquareArrowUpRightExit } from "lucide-react";
+import { ArrowRight, ChevronDown, GitBranch, SquareArrowUpRightExit } from "lucide-react";
 import "./home.css";
 import { useState } from "react";
 
@@ -9,6 +9,7 @@ export default function Page() {
 
   return (
     <div className="overflow-x-hidden">
+      <title>Clatter</title>
       <section className="min-h-dvh flex flex-col pt-12 pb-6">
         <header className="flex items-center px-[15dvw]">
           <img width={32} height={32} src={"/home/icon/regular_48x48.png"} alt={"Clatter logo"}></img>
@@ -36,7 +37,7 @@ export default function Page() {
             </div>
             <div className="flex flex-row gap-3">
               <a href={"./client"}><button className="frame primary flex flex-row gap-2 items-center">Early Build now available <ArrowRight size={16}/></button></a>
-              <a href={"https://github.com/Quntem/clatter-next/"}><button className="frame muted">Contribute</button></a>
+              <a href={"https://github.com/Quntem/clatter-next/"}><button className="frame muted flex flex-row gap-2 items-center">Contribute <GitBranch size={16}/></button></a>
             </div>
           </div>
         </div>
