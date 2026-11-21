@@ -142,9 +142,9 @@ export const workspaceRouter = t.router({
                 where: {
                     workspaceId: workspace.id,
                     OR: [
-                        {
-                            visibility: ChannelVisibility.PUBLIC
-                        },
+                        // {
+                        //     visibility: ChannelVisibility.PUBLIC
+                        // },
                         {
                             members: {
                                 some: {
@@ -163,9 +163,23 @@ export const workspaceRouter = t.router({
                 }
             });
 
+            const availableChannels = await prisma.channel.findMany({
+                where: {
+                    visibility: ChannelVisibility.PUBLIC
+                },
+                include: {
+                    members: {
+                        include: {
+                            membership: true
+                        }
+                    }
+                }
+            })
+
             return {
                 ...workspace,
-                channels
+                channels,
+                availableChannels
             };
         }),
     

@@ -10,7 +10,7 @@ import { Autocomplete, AutocompleteContent, AutocompleteEmpty, AutocompleteInput
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import { Separator } from "@workspace/ui/components/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
-import { ClockIcon, CrownIcon, EyeIcon, FingerprintIcon, HashIcon, InfoIcon, LockIcon, MessageSquareIcon, MoreHorizontalIcon, MoreVerticalIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import { ClockIcon, CrownIcon, EyeIcon, FingerprintIcon, HashIcon, InfoIcon, LockIcon, LogOutIcon, MessageSquareIcon, MoreHorizontalIcon, MoreVerticalIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { Usable, use, useState } from "react";
 
 export default function({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string, channelid: string}>}) {
@@ -22,6 +22,7 @@ export default function({children, params}: {children: React.JSX.Element, params
     const removeMemberMutaion = trpc.channel.removeUser.useMutation({
         onSuccess: () => {
             channel.refetch()
+            workspace.refetch()
         }
     })
     return <div className="flex flex-col w-full h-full">
@@ -128,9 +129,18 @@ export default function({children, params}: {children: React.JSX.Element, params
             <Button variant={"ghost"} size="icon">
                 <SearchIcon />
             </Button>
-            <Button variant={"ghost"} size="icon">
-                <MoreVerticalIcon />
-            </Button>
+            <DropdownMenu>
+                <DropdownMenuTrigger render={<Button size="icon" variant={"ghost"}>
+                    <MoreVerticalIcon />
+                </Button>} />
+                <DropdownMenuContent className="w-auto">
+                    <DropdownMenuItem variant="destructive" onClick={() => {
+                        removeMemberMutaion.mutate({membershipId: channel.data?.members.find(member => member.userId == membership.data?.id)?.id})
+                    }}>
+                        <LogOutIcon /> Leave Channel
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
         <div className="flex-1">
             {children}

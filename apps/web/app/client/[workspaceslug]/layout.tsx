@@ -109,7 +109,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                             <BookUserIcon />
                             Directory
                         </SidebarMenuButton>
-                        <SidebarMenuButton>
+                        <SidebarMenuButton onClick={() => router.push(`/client/${workspaceslug}/channels`)} isActive={pathname == `/client/${workspaceslug}/channels`}>
                             <HashIcon />
                             All Channels
                         </SidebarMenuButton>

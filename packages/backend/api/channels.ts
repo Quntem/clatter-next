@@ -6,6 +6,7 @@ import { prisma } from "../prisma";
 import { TRPCError } from "@trpc/server";
 import {EventEmitter, on} from "events"
 import type { Message } from "../generated/prisma/client";
+import { id } from "zod/v4/locales";
 
 const ee = new EventEmitter()
 
@@ -332,7 +333,7 @@ export const channelsRouter = t.router({
                 member => member.userId === OwnMembership.id
             );
 
-            if (!channelMembership || (channelMembership.role == "MEMBER" && OwnMembership.role == "MEMBER") || OwnMembership.role == "MEMBER") {
+            if (!channelMembership || (channelMembership.role == "MEMBER" && OwnMembership.role == "MEMBER" && targetChannelMembership.id !== channelMembership.id) || (OwnMembership.role == "MEMBER" && targetChannelMembership.id !== channelMembership.id)) {
                 throw new TRPCError({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
@@ -402,121 +403,189 @@ export const channelsRouter = t.router({
 
             return newMembership
         }),
-
     
-createOrGetDirectMessage: authProcedure
-    .input(z.object({
-        userId: z.string(),
-        workspaceId: z.string()
-    }))
-    .mutation(async (opts) => {
-        const currentUserId = opts.ctx.user.id;
-        const targetUserId = opts.input.userId;
-        const workspaceId = opts.input.workspaceId;
-
-        if (currentUserId === targetUserId) {
-            throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Cannot create a DM with yourself"
+    joinPublicChannel: authProcedure
+        .input(z.object({channelId: z.string(), workspaceId: z.string()}))
+        .mutation(async (opts) => {
+            const workspace = await prisma.workspace.findUnique({
+                where: {
+                    id: opts.input.workspaceId
+                },
+                include: {
+                    memberships: true
+                }
             });
-        }
 
-        const workspace = await prisma.workspace.findUnique({
-            where: {
-                id: workspaceId
-            },
-            include: {
-                memberships: true
+            if (!workspace) {
+                throw new TRPCError({
+                    message: "Workspace not found",
+                    code: "NOT_FOUND"
+                });
             }
-        });
 
-        if (!workspace) {
-            throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "Workspace not found"
-            });
-        }
+            const membership = workspace.memberships.find(
+                member => member.userId === opts.ctx.user.id
+            );
 
-        const currentMembership = workspace.memberships.find(
-            member => member.userId === currentUserId
-        );
+            if (!membership) {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }
 
-        if (!currentMembership) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You are not a member of this workspace"
-            });
-        }
+            const channel = await prisma.channel.findUnique({
+                where: {
+                    id: opts.input.channelId
+                },
 
-        const targetMembership = workspace.memberships.find(
-            member => member.userId === targetUserId
-        );
-
-        if (!targetMembership) {
-            throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "Target user is not a member of this workspace"
-            });
-        }
-
-        const channel = await prisma.channel.findFirst({
-            where: {
-                workspaceId,
-                visibility: "DIRECT",
-                members: {
-                    every: {
-                        userId: {
-                            in: [
-                                currentMembership.id,
-                                targetMembership.id
-                            ]
+                include: {
+                    members: {
+                        include: {
+                            membership: true
                         }
                     }
+                }
+            })
+
+            if (!channel) {
+                throw new TRPCError({
+                    message: "Channel not found",
+                    code: "NOT_FOUND"
+                });
+            }
+
+            if (channel.workspaceId !== membership.workspaceId || channel.visibility !== "PUBLIC") {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }
+
+            const newMembership = await prisma.channelMembership.create({
+                data: {
+                    userId: membership.id,
+                    channelId: opts.input.channelId,
+                    role: "MEMBER"
+                }
+            })
+
+            return newMembership
+        }),
+    
+    createOrGetDirectMessage: authProcedure
+        .input(z.object({
+            userId: z.string(),
+            workspaceId: z.string()
+        }))
+        .mutation(async (opts) => {
+            const currentUserId = opts.ctx.user.id;
+            const targetUserId = opts.input.userId;
+            const workspaceId = opts.input.workspaceId;
+
+            if (currentUserId === targetUserId) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Cannot create a DM with yourself"
+                });
+            }
+
+            const workspace = await prisma.workspace.findUnique({
+                where: {
+                    id: workspaceId
                 },
-                AND: [
-                    {
-                        members: {
-                            some: {
-                                userId: currentMembership.id
+                include: {
+                    memberships: true
+                }
+            });
+
+            if (!workspace) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Workspace not found"
+                });
+            }
+
+            const currentMembership = workspace.memberships.find(
+                member => member.userId === currentUserId
+            );
+
+            if (!currentMembership) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You are not a member of this workspace"
+                });
+            }
+
+            const targetMembership = workspace.memberships.find(
+                member => member.userId === targetUserId
+            );
+
+            if (!targetMembership) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Target user is not a member of this workspace"
+                });
+            }
+
+            const channel = await prisma.channel.findFirst({
+                where: {
+                    workspaceId,
+                    visibility: "DIRECT",
+                    members: {
+                        every: {
+                            userId: {
+                                in: [
+                                    currentMembership.id,
+                                    targetMembership.id
+                                ]
                             }
                         }
                     },
-                    {
-                        members: {
-                            some: {
-                                userId: targetMembership.id
+                    AND: [
+                        {
+                            members: {
+                                some: {
+                                    userId: currentMembership.id
+                                }
+                            }
+                        },
+                        {
+                            members: {
+                                some: {
+                                    userId: targetMembership.id
+                                }
                             }
                         }
-                    }
-                ]
+                    ]
+                }
+            });
+
+            if (channel) {
+                return channel;
             }
-        });
 
-        if (channel) {
-            return channel;
-        }
-
-        return await prisma.channel.create({
-            data: {
-                name: "Direct Message",
-                visibility: "DIRECT",
-                workspaceId,
-                members: {
-                    createMany: {
-                        data: [
-                            {
-                                userId: currentMembership.id,
-                                role: "ADMIN"
-                            },
-                            {
-                                userId: targetMembership.id,
-                                role: "ADMIN"
-                            }
-                        ]
+            return await prisma.channel.create({
+                data: {
+                    name: "Direct Message",
+                    visibility: "DIRECT",
+                    workspaceId,
+                    members: {
+                        createMany: {
+                            data: [
+                                {
+                                    userId: currentMembership.id,
+                                    role: "ADMIN"
+                                },
+                                {
+                                    userId: targetMembership.id,
+                                    role: "ADMIN"
+                                }
+                            ]
+                        }
                     }
                 }
-            }
-        });
-    }),
+            });
+        }),
 
 });
