@@ -16,7 +16,7 @@ export function ClientHeader() {
     const workspaces = trpc.workspace.list.useQuery()
     const router = useRouter()
     const pathname = usePathname()
-    return <header className="bg-muted h-[40px] w-full border-b-1 relative flex flex-row items-center">
+    return <header className="bg-muted h-10 w-full border-b relative flex flex-row items-center">
         {/* <Button variant={"ghost"}>
             <p className="font-bold">Clatter</p> Web App
         </Button> */}
@@ -25,11 +25,11 @@ export function ClientHeader() {
                 <MenubarTrigger>File</MenubarTrigger>
                 <MenubarContent>
                     <MenubarGroup>
-                        <MenubarItem>
+                        <MenubarItem disabled={true}>
                             <XIcon />Quit
                         </MenubarItem>
                         <MenubarItem>
-                            <InfoIcon />About Clatter
+                            <InfoIcon />About
                         </MenubarItem>
                     </MenubarGroup>
                 </MenubarContent>
@@ -38,6 +38,11 @@ export function ClientHeader() {
                 <MenubarTrigger>Workspaces</MenubarTrigger>
                 <MenubarContent>
                     <MenubarGroup>
+                        {!workspaces.data?.length && (
+                            <MenubarItem disabled>
+                                {workspaces.isLoading ? "Loading..." : "You're not in any workspaces"}
+                            </MenubarItem>
+                        )}
                         {workspaces.data?.map(item => {
                             return <MenubarCheckboxItem checked={pathname.startsWith("/client/" + item.workspace.slug)} onClick={() => {
                                 router.push("/client/" + item.workspace.slug)
