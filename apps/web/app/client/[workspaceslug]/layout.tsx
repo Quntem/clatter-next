@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@workspace/ui/components/dropdown-menu";
 import { Field, FieldTitle } from "@workspace/ui/components/field";
 import { SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenuButton, SidebarGroupLabel, Sidebar } from "@workspace/ui/components/sidebar";
-import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, UsersIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, SquarePenIcon, BookUserIcon, HashIcon, LockIcon, HandshakeIcon, UserIcon, UserShield, LayoutGridIcon, SparklesIcon, PencilIcon, PlusIcon, EyeIcon, ShieldXIcon } from "lucide-react";
+import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, UsersIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, SquarePenIcon, BookUserIcon, HashIcon, LockIcon, HandshakeIcon, UserIcon, UserShield, LayoutGridIcon, SparklesIcon, PencilIcon, PlusIcon, EyeIcon, ShieldXIcon, InfoIcon } from "lucide-react";
 import { Input } from "@workspace/ui/components/input";
 import { Usable, use, useState } from "react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
@@ -58,17 +58,23 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                                 <WrenchIcon />Server Admin
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
-                                <DropdownMenuItem>
-                                    <PaintbrushIcon />
-                                    Customise Workspace
+                                <DropdownMenuItem onClick={() => {
+                                    window.open("/admin/" + workspaceslug + "/channels", "_blank")
+                                }}>
+                                    <HashIcon />
+                                    Channels
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <IdCardIcon />
-                                    Workspace Identity
+                                <DropdownMenuItem onClick={() => {
+                                    window.open("/admin/" + workspaceslug + "/workspace-info", "_blank")
+                                }}>
+                                    <InfoIcon />
+                                    Workspace Info
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                    window.open("/admin/" + workspaceslug + "/users", "_blank")
+                                }}>
                                     <UsersIcon />
-                                    Users and Groups
+                                    Users
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => {

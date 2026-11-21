@@ -243,6 +243,55 @@ export const workspaceRouter = t.router({
             return invite
         }),
 
+    update: authProcedure
+        .input(z.object({workspaceId: z.string(), image: z.string().optional(), name: z.string().optional()}))
+        .mutation(async (opts) => {
+            const workspace = await prisma.workspace.findUnique({
+                where: {
+                    id: opts.input.workspaceId
+                },
+                include: {
+                    memberships: {
+                        include: {
+                            user: true
+                        }
+                    },
+                    externalConnections: true
+                }
+            });
+
+            if (!workspace) {
+                throw new TRPCError({
+                    message: "Workspace not found",
+                    code: "NOT_FOUND"
+                });
+            }
+
+            // Find the current user's workspace membership
+            const membership = workspace.memberships.find(
+                member => member.userId === opts.ctx.user.id
+            );
+
+            if (!membership || membership.role == "MEMBER") {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }
+
+            const update = prisma.workspace.update({
+                where: {
+                    id: opts.input.workspaceId
+                },
+                data: {
+                    image: opts.input.image,
+                    name: opts.input.name
+                }
+            })
+
+            return update
+        }),
+
     getMembership: authProcedure
         .input(z.object({workspaceId: z.string(), userId: z.string().optional()}))
         .query(async (opts) => {

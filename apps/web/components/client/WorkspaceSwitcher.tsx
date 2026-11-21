@@ -117,7 +117,7 @@ export function WorkspaceSwitcherSidebarItem({active, onClick, workspace}: {acti
     return <Tooltip>
         <TooltipTrigger render={<div className={`w-[40px] h-[40px] rounded-lg border-foreground transition-all ${active ? "border-2 p-0.5" : "border-0"}`} onClick={onClick}>
             <div className={`bg-black w-full h-full transition-all overflow-hidden ${active ? "rounded-sm" : "rounded-lg"}`}>
-                <img src={workspace.image || "/client/assets/wsicon.png"} />
+                <img src={workspace?.workspace?.image || "/client/assets/wsicon.png"} />
             </div>
         </div>} />
         <TooltipContent side="right">{workspace.workspace.name}</TooltipContent>

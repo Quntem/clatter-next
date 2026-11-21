@@ -18,14 +18,14 @@ export default function adminLayout({children, params}: {children: React.JSX.Ele
             <SidebarHeader>
                 <Item className="p-2 pb-1">
                     <ItemMedia className="bg-black" variant={"image"}>
-                        
+                        <img src={workspace?.data?.image || "/client/assets/wsicon.png"} />
                     </ItemMedia>
                     <ItemContent>
                         <ItemTitle>{workspace.data?.name}</ItemTitle>
                         <ItemDescription>{workspace.data?.slug}</ItemDescription>
                     </ItemContent>
                 </Item>
-                <SidebarMenuButton>
+                <SidebarMenuButton onClick={() => router.push("/client/" + workspaceslug)}>
                     <ArrowLeftIcon /> Return to Client
                 </SidebarMenuButton>
             </SidebarHeader>
@@ -47,8 +47,8 @@ export default function adminLayout({children, params}: {children: React.JSX.Ele
                 <SidebarGroup>
                     <SidebarGroupLabel>Settings</SidebarGroupLabel>
                     <SidebarGroupContent>
-                        <SidebarMenuButton>
-                            <InfoIcon />Workspace Identity
+                        <SidebarMenuButton onClick={() => router.push("/admin/" + workspaceslug + "/workspace-info")} isActive={path == "/admin/" + workspaceslug + "/workspace-info"}>
+                            <InfoIcon />Workspace Info
                         </SidebarMenuButton>
                     </SidebarGroupContent>
                 </SidebarGroup>
