@@ -19,7 +19,7 @@ export function AuthProvider({children}: {children: React.JSX.Element}) {
     useEffect(() => {
         if (!authState?.loaded) return
         if (!authState?.data?.sessionId) {
-            window.location.href = `${process.env.NEXT_PUBLIC_KEYSTONE_URL}/auth/signin?redirectTo=` + window.location.href
+            window.location.replace("/auth?next=" + encodeURIComponent(window.location.pathname + window.location.search))
         }
     }, [authState])
     return <authContext.Provider value={{
