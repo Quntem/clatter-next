@@ -10,23 +10,27 @@ import { Autocomplete, AutocompleteContent, AutocompleteEmpty, AutocompleteInput
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import { Separator } from "@workspace/ui/components/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
-import { ClockIcon, CrownIcon, EyeIcon, FingerprintIcon, HashIcon, InfoIcon, LockIcon, MessageSquareIcon, MoreHorizontalIcon, MoreVerticalIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import { ClockIcon, CrownIcon, EyeIcon, FingerprintIcon, HashIcon, InfoIcon, LockIcon, LogOutIcon, MessageSquareIcon, MoreHorizontalIcon, MoreVerticalIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { Usable, use, useState } from "react";
 
 export default function({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
+    const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
+    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
     const channel = trpc.channel.get.useQuery({id: channelid})
+    
     const removeMemberMutaion = trpc.channel.removeUser.useMutation({
         onSuccess: () => {
             channel.refetch()
+            workspace.refetch()
         }
     })
     return <div className="flex flex-col w-full h-full">
         <div className="h-[50px] w-full border-b-1 px-2 flex flex-row items-center">
             <Dialog>
                 <DialogTrigger render={<Button variant={"ghost"}>
-                    {channel.data?.visibility == "PRIVATE" ? <LockIcon /> : <HashIcon />}
-                    {channel.data?.name}
+                    {channel.data?.visibility == "PRIVATE" ? <LockIcon /> : channel.data?.visibility == "DIRECT" ? <UserIcon /> : <HashIcon />}
+                    {channel.data?.visibility !== "DIRECT" ? channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
                 </Button>} />
                 <DialogContent className="p-0 gap-0">
                     <DialogHeader className="p-4 pb-2">
@@ -125,9 +129,18 @@ export default function({children, params}: {children: React.JSX.Element, params
             <Button variant={"ghost"} size="icon">
                 <SearchIcon />
             </Button>
-            <Button variant={"ghost"} size="icon">
-                <MoreVerticalIcon />
-            </Button>
+            <DropdownMenu>
+                <DropdownMenuTrigger render={<Button size="icon" variant={"ghost"}>
+                    <MoreVerticalIcon />
+                </Button>} />
+                <DropdownMenuContent className="w-auto">
+                    <DropdownMenuItem variant="destructive" onClick={() => {
+                        removeMemberMutaion.mutate({membershipId: channel.data?.members.find(member => member.userId == membership.data?.id)?.id})
+                    }}>
+                        <LogOutIcon /> Leave Channel
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
         <div className="flex-1">
             {children}

@@ -1,6 +1,6 @@
 "use client"
 import { trpc } from "@/lib/trpc";
-import { Message } from "@workspace/backend/generated/prisma/client";
+import { Channel, Message } from "@workspace/backend/generated/prisma/client";
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@workspace/ui/components/input-group";
@@ -13,6 +13,7 @@ import { Usable, use, useEffect, useState } from "react";
 export default function({params}: {params: Usable<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
+    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
     const channel = trpc.channel.get.useQuery({id: channelid})
     const [messages, setMessages] = useState<Message[]>([])
     const [inputContent, setInputContent] = useState("")
@@ -34,9 +35,9 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
             <div className="flex-1 flex flex-col px-6 pb-4">
                 <div className="flex-1" />
                 <div className="text-xl mb-1">
-                    #{channel.data?.name}
+                    {channel.data?.visibility !== "DIRECT" ? "#" + channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
                 </div>
-                <div className="mb-4">This is the start of this channel</div>
+                <div className="mb-4">This is the start of this {channel.data?.visibility !== "DIRECT" ? "channel" : "conversation"}</div>
                 <Separator />
             </div>
             {messages?.map((item, index) => {
@@ -45,8 +46,8 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
             {/* <MessageItem />
             <MessageItem compact /> */}
         </div>
-        <div className="w-full p-6 pt-0">
-            <InputGroup>
+        <div className={`w-full p-6 pt-0 ${workspace.data?.channels.find(item => item.id == channel.data?.id) ? "" : " border-t-1"}`}>
+            {workspace.data?.channels.find(item => item.id == channel.data?.id) ? <InputGroup>
                 <InputGroupTextarea value={inputContent} onChange={ev => setInputContent(ev.target.value)} onKeyDown={(ev) => {
                     if (!ev.shiftKey && ev.key == "Enter") {
                         ev.preventDefault()
@@ -61,7 +62,7 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
                             setInputContent("")
                         })
                     }
-                }} rows={1} placeholder={`Message #${channel.data?.name}`} />
+                }} rows={1} placeholder={`Message ${channel.data?.visibility !== "DIRECT" ? "#" + channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}`} />
                 <InputGroupAddon className="flex flex-row" align={"block-end"}>
                     <Button size="icon-sm">
                         <PlusIcon />
@@ -99,8 +100,27 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
                         <SendIcon />
                     </Button>
                 </InputGroupAddon>
-            </InputGroup>
+            </InputGroup> : <JoinChanelRow channel={channel} workspace={workspace} messagesListen={messagesListen} />}
         </div>
+    </div>
+}
+
+function JoinChanelRow({channel, workspace, messagesListen}: {channel: ReturnType<typeof trpc.channel.get.useQuery>, workspace: ReturnType<typeof trpc.workspace.get.useQuery>, messagesListen: ReturnType<typeof trpc.channel.listenMessages.useSubscription>}) {
+    const joinChannelMutation = trpc.channel.joinPublicChannel.useMutation({
+        onSuccess: () => {
+            channel.refetch()
+            workspace.refetch()
+            messagesListen.reset()
+        }
+    })
+    return <div className="flex flex-row pt-6 w-full items-center">
+        <div className="text-lg">#{channel?.data?.name}</div>
+        <div className="flex-1" />
+        <Button onClick={() => {
+            joinChannelMutation.mutate({channelId: channel?.data?.id, workspaceId: channel?.data?.workspaceId })
+        }}>
+            <PlusIcon />Join
+        </Button>
     </div>
 }
 

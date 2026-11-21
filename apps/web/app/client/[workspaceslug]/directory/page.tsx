@@ -5,14 +5,17 @@ import { Button } from "@workspace/ui/components/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@workspace/ui/components/item";
 import { Separator } from "@workspace/ui/components/separator";
-import { BookUserIcon, CheckIcon, MoreVerticalIcon, SearchIcon, UserIcon, UserPlusIcon, UsersIcon, XIcon } from "lucide-react";
+import { BookUserIcon, CheckIcon, MessageSquareIcon, MoreVerticalIcon, SearchIcon, UserIcon, UserPlusIcon, UsersIcon, XIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Usable, use, useState } from "react";
 
 export default function({params}: {params: Usable<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
+    const router = useRouter()
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
     const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    const createWorkspace = trpc.channel.createOrGetDirectMessage.useMutation()
     const deactivate = trpc.workspace.modifyUserActivation.useMutation({
         onSuccess: () => {
             workspace.refetch()
@@ -62,11 +65,18 @@ export default function({params}: {params: Usable<{workspaceslug: string}>}) {
                                         <DropdownMenuTrigger render={<Button size="icon" variant={"ghost"}>
                                             <MoreVerticalIcon />
                                         </Button>} />
-                                        <DropdownMenuContent>
+                                        <DropdownMenuContent className="w-auto">
                                             <DropdownMenuItem variant={item.deactivated ? "default" : "destructive"} onClick={() => {
                                                 deactivate.mutate({membershipId: item.id, action: item.deactivated ? "ACTIVATE" : "DEACTIVATE"})
                                             }}>
                                                 {item.deactivated ? <><CheckIcon /> Activate User</> : <><XIcon /> Deactivate User</>}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => {
+                                                createWorkspace.mutateAsync({workspaceId: workspace.data.id, userId: item.userId}).then(res => {
+                                                    router.push("/client/" + workspaceslug + "/channel/" + res.id)
+                                                })
+                                            }}>
+                                                <MessageSquareIcon /> Direct message
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
