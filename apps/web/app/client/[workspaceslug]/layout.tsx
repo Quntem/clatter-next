@@ -93,10 +93,10 @@ export default function WorkspaceLayout({children, params}: {children: React.Rea
                         <DropdownMenuItem onClick={() => setUserSettingsDialogOpen(true)}>
                             <SettingsIcon />User Settings
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
+                        {/* <DropdownMenuSeparator />
                         <DropdownMenuItem variant="destructive">
                             <LogOutIcon />Log Out
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <div className="flex-1" />

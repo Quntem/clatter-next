@@ -1,5 +1,5 @@
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@workspace/ui/components/input-group"
-import { InfoIcon, Layers3Icon, LogOutIcon, MessageSquareIcon, MonitorIcon, MoonIcon, SearchIcon, SettingsIcon, SunIcon, UserIcon, XIcon } from "lucide-react"
+import { CodeIcon, InfoIcon, Layers3Icon, LogOutIcon, MessageSquareIcon, MonitorIcon, MoonIcon, SearchIcon, SettingsIcon, SunIcon, UserIcon, XIcon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { useAuthContext } from "@/lib/auth"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu"
@@ -12,6 +12,7 @@ import { useTheme } from "next-themes"
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@workspace/ui/components/command"
 import { useEffect, useState } from "react"
 import { Kbd } from "@workspace/ui/components/kbd"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog"
 
 export function ClientHeader() {
     const theme = useTheme()
@@ -21,6 +22,7 @@ export function ClientHeader() {
     const pathname = usePathname()
     const [commandDialogOpen, setCommandDialogOpen] = useState(false)
     const [searchValue, setSearchValue] = useState("")
+    const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
     useEffect(() => {
         const openSearch = (event: Event) => {
             const { query } = (event as CustomEvent<{ query: string }>).detail
@@ -39,15 +41,16 @@ export function ClientHeader() {
         {/* <Button variant={"ghost"}>
             <p className="font-bold">Clatter</p> Web App
         </Button> */}
+        <AboutClatterDialog open={aboutDialogOpen} setOpen={setAboutDialogOpen} />
         <Menubar className={"border-none ml-2"}>
             <MenubarMenu>
                 <MenubarTrigger>File</MenubarTrigger>
                 <MenubarContent>
                     <MenubarGroup>
-                        <MenubarItem disabled={true}>
+                        <MenubarItem onClick={() => window.close()}>
                             <XIcon />Quit
                         </MenubarItem>
-                        <MenubarItem>
+                        <MenubarItem onClick={() => setAboutDialogOpen(true)}>
                             <InfoIcon />About
                         </MenubarItem>
                     </MenubarGroup>
@@ -174,11 +177,29 @@ export function ClientHeader() {
                     <UserIcon />
                     User Settings
                 </DropdownMenuItem> */}
-                <DropdownMenuItem variant="destructive">
+                <DropdownMenuItem variant="destructive" onClick={() => {
+                    window.open(process.env.NEXT_PUBLIC_KEYSTONE_URL + "/auth/logout?redirectTo=" + encodeURIComponent(window.location.origin))
+                }}>
                     <LogOutIcon />
                     Log Out
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     </header>
+}
+
+function AboutClatterDialog({open, setOpen}: {open: boolean, setOpen: (data: boolean) => void}) {
+    return <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>About Clatter</DialogTitle>
+                <DialogDescription>Clatter is an open source communications platform built by Quntem</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button variant={"outline"} onClick={() => window.open("https://github.com/Quntem/clatter-next/")}>
+                    <CodeIcon />GitHub
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 }

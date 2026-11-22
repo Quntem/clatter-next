@@ -13,7 +13,7 @@ function safeNext(raw: string | undefined) {
 
 function goToKeystone(next: string) {
   if (!process.env.NEXT_PUBLIC_KEYSTONE_URL!) throw new TypeError("NEXT_PUBLIC_KEYSTONE_URL is not set");
-  window.location.href = `${process.env.NEXT_PUBLIC_KEYSTONE_URL!}/auth/signin?redirectTo=${encodeURIComponent(window.location.origin + next)}`;
+  window.location.href = `${process.env.NEXT_PUBLIC_KEYSTONE_FRONTEND_URL!}/appflow/${process.env.NEXT_PUBLIC_APP_ID}/acquire?redirect=${encodeURIComponent(window.location.origin + next)}`;
 }
 
 export default function Page() {
