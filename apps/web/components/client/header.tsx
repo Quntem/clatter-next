@@ -44,7 +44,7 @@ export function ClientHeader() {
                             </MenubarItem>
                         )}
                         {workspaces.data?.map(item => {
-                            return <MenubarCheckboxItem checked={pathname.startsWith("/client/" + item.workspace.slug)} onClick={() => {
+                            return <MenubarCheckboxItem key={item.id} checked={pathname.startsWith("/client/" + item.workspace.slug)} onClick={() => {
                                 router.push("/client/" + item.workspace.slug)
                             }}>
                                 {item.workspace.name}

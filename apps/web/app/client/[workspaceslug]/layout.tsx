@@ -14,11 +14,13 @@ import { useAuthContext } from "@/lib/auth";
 import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@workspace/ui/components/empty"
 import { CreateChannelDialog } from "@/createChannelDialog";
+import { UserSettingsDialog } from "@/components/client/userSettings";
 
 export default function WorkspaceLayout({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string}>}) {
     const router = useRouter()
     const pathname = usePathname()
     const { workspaceslug } = use(params)
+    const [userSettingsDialogOpen, setUserSettingsDialogOpen] = useState(false)
     const [createChannelDialogOpen, setCreateChannelDialogOpen] = useState(false)
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
@@ -40,6 +42,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
         </div>
     }
     return <div className="flex-1 flex flex-row">
+        <UserSettingsDialog open={userSettingsDialogOpen} setOpen={setUserSettingsDialogOpen} workspace={workspace} />
         <CreateChannelDialog open={createChannelDialogOpen} setOpen={setCreateChannelDialogOpen} workspace={workspace} />
         <InviteUserDialog open={inviteUserDialogOpen} setOpen={setInviteUserDialogOpen} workspace={workspace} />
         <Sidebar collapsible="none" className="border-r-1 w-[300px] shrink-0">
@@ -84,8 +87,8 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                                 </DropdownMenuItem>
                             </DropdownMenuSubContent>
                         </DropdownMenuSub>
-                        <DropdownMenuItem>
-                            <SettingsIcon />Settings
+                        <DropdownMenuItem onClick={() => setUserSettingsDialogOpen(true)}>
+                            <SettingsIcon />User Settings
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem variant="destructive">
@@ -167,7 +170,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                         </SidebarMenuButton> */}
                     </SidebarGroupContent>
                 </SidebarGroup>
-                <SidebarGroup>
+                {/* <SidebarGroup>
                     <SidebarGroupLabel>
                         Apps
                     </SidebarGroupLabel>
@@ -181,7 +184,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                             AI Agent
                         </SidebarMenuButton>
                     </SidebarGroupContent>
-                </SidebarGroup>
+                </SidebarGroup> */}
             </SidebarContent>
         </Sidebar>
         {children}
