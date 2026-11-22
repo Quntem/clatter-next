@@ -7,7 +7,7 @@ import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@workspace/ui/c
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { Separator } from "@workspace/ui/components/separator";
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@workspace/ui/components/ui/emoji-picker";
-import { CrownIcon, PlusIcon, SendIcon, SmileIcon } from "lucide-react";
+import { CrownIcon, PlusIcon, SendIcon, SmileIcon, UserIcon } from "lucide-react";
 import { Usable, use, useEffect, useState } from "react";
 
 export default function({params}: {params: Usable<{workspaceslug: string, channelid: string}>}) {
@@ -64,9 +64,9 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
                     }
                 }} rows={1} placeholder={`Message ${channel.data?.visibility !== "DIRECT" ? "#" + channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}`} />
                 <InputGroupAddon className="flex flex-row" align={"block-end"}>
-                    <Button size="icon-sm">
+                    {/* <Button size="icon-sm">
                         <PlusIcon />
-                    </Button>
+                    </Button> */}
                     <Popover>
                         <PopoverTrigger render={<Button size="icon-sm" variant={"ghost"}>
                             <SmileIcon />
@@ -126,8 +126,8 @@ function JoinChanelRow({channel, workspace, messagesListen}: {channel: ReturnTyp
 
 function MessageItem({compact=false, message}: {compact?: boolean, message: Message}) {
     return <div className="w-full px-6 pb-1 pt-1 hover:bg-black/5 flex flex-row gap-3">
-        {compact ? <div className="w-[40px] mt-0.5" /> : <div className="h-[40px] w-[40px] rounded-md border-1 bg-muted mt-0.5">
-            
+        {compact ? <div className="w-[40px] mt-0.5" /> : <div className="h-[40px] w-[40px] rounded-md border-1 bg-muted mt-0.5 flex flex-col items-center justify-center overflow-hidden">
+            {message.sentBy.profilePicture ? <img src={message.sentBy.profilePicture} /> : <UserIcon size={20} />}
         </div>}
         <div className="flex flex-col">
             {!compact && <div className="flex flex-row items-center gap-2">

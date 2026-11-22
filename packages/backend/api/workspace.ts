@@ -363,5 +363,22 @@ export const workspaceRouter = t.router({
             })
 
             return modified
+        }),
+    
+    updateMembership: authProcedure
+        .input(z.object({name: z.string().optional(), profilePicture: z.string().optional(), workspaceId: z.string()}))
+        .mutation(async (opts) => {
+            const membership = await prisma.workspaceMembership.update({
+                where: {
+                    userId_workspaceId: {
+                        userId: opts.ctx.user.id,
+                        workspaceId: opts.input.workspaceId
+                    }
+                },
+                data: {
+                    name: opts.input.name,
+                    profilePicture: opts.input.profilePicture
+                }
+            })
         })
 });

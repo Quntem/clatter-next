@@ -27,6 +27,11 @@ export default function Page() {
     router.replace(safeNext(new URLSearchParams(window.location.search).getAll("next").filter(Boolean)[0]));
   }, [authState, router]);
 
+  useEffect(() => {
+    console.log("Auth state:", authState);
+    console.log("Next:", new URLSearchParams(window.location.search).get("next"));
+  }, [authState]);
+
   const busy = !authState.loaded || !!authState.data?.sessionId || leaving;
 
   function handleSignIn() {
