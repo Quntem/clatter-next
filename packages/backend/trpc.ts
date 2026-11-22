@@ -59,13 +59,13 @@ export const authProcedure = t.procedure.use(async (opts) => {
         user = await prisma.user.upsert({
             update: {
                 keystoneId: session.user.id,
-                username: session.user.username + (session.tenant.name ? `_${session.tenant.name}` : ""),
+                username: session.user.username + (session.tenant?.name ? `_${session.tenant.name}` : ""),
                 keystoneObject: session.user,
                 email: session.user.email,
             },
             create: {
                 keystoneId: session.user.id,
-                username: session.user.username + (session.tenant.name ? `_${session.tenant.name}` : ""),
+                username: session.user.username + (session.tenant?.name ? `_${session.tenant.name}` : ""),
                 keystoneObject: session.user,
                 email: session.user.email,
             },
@@ -74,6 +74,7 @@ export const authProcedure = t.procedure.use(async (opts) => {
             },
         })
     } catch(error) {
+        console.warn("session verify/upsert failed:", error)
         throw new TRPCError({
             code: 'UNAUTHORIZED',
             message: 'Failed to verify session',
