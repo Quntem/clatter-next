@@ -35,7 +35,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                 <EmptyContent>
                     <EmptyTitle>Error</EmptyTitle>
                     <EmptyDescription>
-                        {workspace.error.message}
+                        {workspace.error?.message}
                     </EmptyDescription>
                 </EmptyContent>
             </Empty>
@@ -45,8 +45,8 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
         <UserSettingsDialog open={userSettingsDialogOpen} setOpen={setUserSettingsDialogOpen} workspace={workspace} />
         <CreateChannelDialog open={createChannelDialogOpen} setOpen={setCreateChannelDialogOpen} workspace={workspace} />
         <InviteUserDialog open={inviteUserDialogOpen} setOpen={setInviteUserDialogOpen} workspace={workspace} />
-        <Sidebar collapsible="none" className="border-r-1 w-[300px] shrink-0">
-            <SidebarHeader className="h-[50px] border-b-1 flex flex-row">
+        <Sidebar collapsible="none" className="border-r w-75 shrink-0">
+            <SidebarHeader className="h-12.5 border-b flex flex-row">
                 <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant={"ghost"}>
                         {workspace.data?.name}<ChevronDownIcon />
@@ -111,9 +111,9 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                     </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarHeader>
-            <SidebarContent className="gap-0">
+            <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupContent>
+                    <SidebarGroupContent className="flex flex-col gap-1">
                         <SidebarMenuButton onClick={() => router.push(`/client/${workspaceslug}/directory`)} isActive={pathname == `/client/${workspaceslug}/directory`}>
                             <BookUserIcon />
                             Directory

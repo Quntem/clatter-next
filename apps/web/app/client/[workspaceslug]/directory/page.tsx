@@ -22,7 +22,7 @@ export default function({params}: {params: Usable<{workspaceslug: string}>}) {
         }
     })
     return <div className="flex flex-col w-full h-full">
-        <div className="h-[50px] w-full border-b-1 px-2 flex flex-row items-center">
+        <div className="h-12.5 w-full border-b px-2 flex flex-row items-center">
             <Button variant={"ghost"}>
                 <BookUserIcon />
                 Directory
@@ -44,7 +44,7 @@ export default function({params}: {params: Usable<{workspaceslug: string}>}) {
         </div>
         <div className="flex-1 p-4">
             <div className={"max-w-[70%] mx-auto"}>
-                <ItemGroup className="gap-0 rounded-xl! border-1 overflow-hidden">
+                <ItemGroup className="gap-0 rounded-xl! border overflow-hidden">
                     {workspace.data?.memberships.map((item, index) => {
                         return <div key={index}>
                             {index !== 0 && <Separator />}
