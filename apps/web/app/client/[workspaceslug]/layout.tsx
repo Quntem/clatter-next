@@ -1,7 +1,6 @@
 "use client"
 import { trpc } from "@/lib/trpc";
 import { Button } from "@workspace/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@workspace/ui/components/dropdown-menu";
 import { Field, FieldTitle } from "@workspace/ui/components/field";
 import { SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenuButton, SidebarGroupLabel, Sidebar } from "@workspace/ui/components/sidebar";
@@ -61,6 +60,9 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                                 <WrenchIcon />Server Admin
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
+                                <DropdownMenuItem disabled={membership.data?.role == "MEMBER"} onClick={() => router.push(`/admin/${workspaceslug}/external-connections`)}>
+                                    <HandshakeIcon />External Connections
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => {
                                     window.open("/admin/" + workspaceslug + "/channels", "_blank")
                                 }}>
@@ -102,9 +104,9 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                         <SquarePenIcon />
                     </Button>} />
                     <DropdownMenuContent className="w-full">
-                        <DropdownMenuItem>
+                        {/* <DropdownMenuItem>
                             <PencilIcon /> Compose
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                         <DropdownMenuItem onClick={() => setCreateChannelDialogOpen(true)}>
                             <HashIcon /> Create Channel
                         </DropdownMenuItem>
@@ -113,7 +115,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
             </SidebarHeader>
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupContent className="flex flex-col gap-1">
+                    <SidebarGroupContent className="flex flex-col gap-0">
                         <SidebarMenuButton onClick={() => router.push(`/client/${workspaceslug}/directory`)} isActive={pathname == `/client/${workspaceslug}/directory`}>
                             <BookUserIcon />
                             Directory
@@ -131,7 +133,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
                     <SidebarGroupContent>
                         {workspace.data?.channels.filter(channel => channel.visibility !== "DIRECT").map(channel => {
                             return <SidebarMenuButton key={channel.id} onClick={() => router.push(`/client/${workspaceslug}/channel/${channel.id}`)} isActive={pathname == `/client/${workspaceslug}/channel/${channel.id}`}>
-                                {channel.visibility == "PRIVATE" ? <LockIcon /> : <HashIcon />}
+                                {channel.workspaceId !== workspace.data?.id || channel.externalConnections.length > 0 ? <HandshakeIcon /> : channel.visibility == "PRIVATE" ? <LockIcon /> : <HashIcon />}
                                 {channel.name}
                             </SidebarMenuButton>
                         })}
@@ -190,4 +192,3 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
         {children}
     </div>
 }
-

@@ -4,7 +4,7 @@ import { AuthProvider } from "@/lib/auth";
 import { trpc } from "@/lib/trpc";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@workspace/ui/components/item";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenuButton, SidebarProvider } from "@workspace/ui/components/sidebar";
-import { ArrowLeftIcon, HashIcon, IdCardLanyardIcon, InfoIcon, UsersIcon } from "lucide-react";
+import { ArrowLeftIcon, HandshakeIcon, HashIcon, IdCardLanyardIcon, InfoIcon, UsersIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Usable, use } from "react";
 
@@ -41,6 +41,9 @@ export default function adminLayout({children, params}: {children: React.JSX.Ele
                         </SidebarMenuButton>
                         <SidebarMenuButton onClick={() => router.push("/admin/" + workspaceslug + "/channels")} isActive={path == "/admin/" + workspaceslug + "/channels"}>
                             <HashIcon />Channels
+                        </SidebarMenuButton>
+                        <SidebarMenuButton onClick={() => router.push("/admin/" + workspaceslug + "/external-connections")} isActive={path == "/admin/" + workspaceslug + "/external-connections"}>
+                            <HandshakeIcon />External Connections
                         </SidebarMenuButton>
                     </SidebarGroupContent>
                 </SidebarGroup>

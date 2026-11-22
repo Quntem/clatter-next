@@ -1,6 +1,6 @@
 import { Button } from "@workspace/ui/components/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@workspace/ui/components/dialog"
-import { Field, FieldTitle } from "@workspace/ui/components/field"
+import { Field, FieldDescription, FieldTitle } from "@workspace/ui/components/field"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectItem } from "@workspace/ui/components/select"
 import { EyeIcon, LockIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
@@ -25,6 +25,7 @@ export function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, 
             </DialogHeader>
             <Field>
                 <FieldTitle>Channel Name</FieldTitle>
+                <FieldDescription>Channel Name must not contain spaces or uppercase letters</FieldDescription>
                 <Input placeholder="Channel Name" value={channelName} onChange={ev => setChannelName(ev.target.value)} />
             </Field>
             <Field>
@@ -44,7 +45,7 @@ export function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, 
                 </Select>
             </Field>
             <DialogFooter>
-                <Button disabled={channelName == "" || channelVisibility == null || channelName.includes(" ")} onClick={() => {
+                <Button disabled={channelName == "" || channelName !== channelName.toLowerCase() || channelVisibility == null || channelName.includes(" ")} onClick={() => {
                     createChannel.mutate({name: channelName, visibility: channelVisibility, workspaceId: workspace.data.id})
                 }}><PlusIcon />Create</Button>
             </DialogFooter>

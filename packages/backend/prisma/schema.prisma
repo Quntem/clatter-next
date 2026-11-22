@@ -143,6 +143,7 @@ model ExternalChannelConnection {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @default(now()) @updatedAt
+  accepted    Boolean   @default(false)
 }
 
 model Workspace {

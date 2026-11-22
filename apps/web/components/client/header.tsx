@@ -82,12 +82,15 @@ export function ClientHeader() {
                 </MenubarContent>
             </MenubarMenu>
         </Menubar>
-        <InputGroup className="bg-white max-w-[600px] absolute left-[50%] -translate-x-[50%] max-h-[28px]">
+        {/* <InputGroup className="bg-white max-w-[600px] absolute left-[50%] -translate-x-[50%] max-h-[28px]">
             <InputGroupAddon>
                 <SearchIcon />
             </InputGroupAddon>
             <InputGroupInput placeholder="Search Workspace" />
-        </InputGroup>
+        </InputGroup> */}
+        <Button variant={"outline"} className="bg-white w-[600px] absolute left-[50%] -translate-x-[50%] max-h-[28px]">
+            <SearchIcon />Search Workspace
+        </Button>
         <div className="flex-1" />
         <DropdownMenu>
             <Tooltip>

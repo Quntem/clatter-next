@@ -7,7 +7,7 @@ import { Button } from "@workspace/ui/components/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@workspace/ui/components/item";
 import { Separator } from "@workspace/ui/components/separator";
-import { BookUserIcon, CheckIcon, HashIcon, LockIcon, MessageSquareIcon, MoreVerticalIcon, PlusIcon, SearchIcon, UserIcon, UserPlusIcon, UsersIcon, XIcon } from "lucide-react";
+import { BookUserIcon, CheckIcon, HandshakeIcon, HashIcon, LockIcon, MessageSquareIcon, MoreVerticalIcon, PlusIcon, SearchIcon, UserIcon, UserPlusIcon, UsersIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Usable, use, useState } from "react";
 
@@ -57,7 +57,7 @@ export default function({params}: {params: Usable<{workspaceslug: string}>}) {
                                 router.push("/client/" + workspaceslug + "/channel/" + item.id)
                             }}>
                                 <ItemMedia variant={"icon"} className="pt-1.5">
-                                    {item.visibility == "PUBLIC" ? <HashIcon /> : <LockIcon />}
+                                    {item.workspaceId !== workspace.data?.id || item.externalConnections.length > 0 ? <HandshakeIcon /> : item.visibility == "PUBLIC" ? <HashIcon /> : <LockIcon />}
                                 </ItemMedia>
                                 <ItemContent className="flex flex-row">
                                     <ItemTitle>
@@ -94,7 +94,7 @@ export default function({params}: {params: Usable<{workspaceslug: string}>}) {
                                 router.push("/client/" + workspaceslug + "/channel/" + item.id)
                             }}>
                                 <ItemMedia variant={"icon"} className="pt-1.5">
-                                    {item.visibility == "PUBLIC" ? <HashIcon /> : <LockIcon />}
+                                    {item.workspaceId !== workspace.data?.id || item.externalConnections.length > 0 ? <HandshakeIcon /> : item.visibility == "PUBLIC" ? <HashIcon /> : <LockIcon />}
                                 </ItemMedia>
                                 <ItemContent className="flex flex-row">
                                     <ItemTitle>

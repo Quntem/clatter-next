@@ -108,7 +108,16 @@ export const workspaceRouter = t.router({
                             user: true
                         }
                     },
-                    externalConnections: true,
+                    externalConnections: {
+                        include: {
+                            channel: {
+                                include: {
+                                    workspace: true,
+                                    members: { include: { membership: true } }
+                                }
+                            }
+                        }
+                    },
                     invites: {
                         include: {
                             user: true
@@ -159,28 +168,100 @@ export const workspaceRouter = t.router({
                         include: {
                             membership: true
                         }
-                    }
+                    },
+                    externalConnections: true
                 }
             });
 
             const availableChannels = await prisma.channel.findMany({
                 where: {
-                    visibility: ChannelVisibility.PUBLIC
+                    visibility: ChannelVisibility.PUBLIC,
+                    workspaceId: workspace.id
                 },
                 include: {
                     members: {
                         include: {
                             membership: true
                         }
-                    }
+                    },
+                    externalConnections: true
                 }
             })
 
+            const connectedChannels = workspace.externalConnections
+                .filter(connection => connection.accepted)
+                .map(connection => connection.channel)
+                .filter(channel => channel.visibility === ChannelVisibility.PUBLIC);
+            const joinedConnectedChannels = connectedChannels.filter(channel =>
+                channel.members.some(member => member.membership.userId === opts.ctx.user.id)
+            );
+            const availableConnectedChannels = connectedChannels.filter(channel =>
+                !channel.members.some(member => member.membership.userId === opts.ctx.user.id)
+            );
+
             return {
                 ...workspace,
-                channels,
-                availableChannels
+                channels: [...channels, ...joinedConnectedChannels],
+                availableChannels: [...availableChannels, ...availableConnectedChannels]
             };
+        }),
+
+    acceptExternalConnection: authProcedure
+        .input(z.object({connectionId: z.string()}))
+        .mutation(async (opts) => {
+            const connection = await prisma.externalChannelConnection.findUnique({
+                where: { id: opts.input.connectionId },
+                include: { workspace: { include: { memberships: true } } }
+            });
+            if (!connection) {
+                throw new TRPCError({ message: "Invite not found", code: "NOT_FOUND" });
+            }
+            const membership = connection.workspace.memberships.find(member =>
+                member.userId === opts.ctx.user.id && !member.deactivated
+            );
+            if (!membership || membership.role === "MEMBER") {
+                throw new TRPCError({ message: "Unauthorized", code: "UNAUTHORIZED" });
+            }
+            return prisma.externalChannelConnection.update({
+                where: { id: connection.id },
+                data: { accepted: true }
+            });
+        }),
+
+    removeExternalConnection: authProcedure
+        .input(z.object({connectionId: z.string()}))
+        .mutation(async (opts) => {
+            const connection = await prisma.externalChannelConnection.findUnique({
+                where: { id: opts.input.connectionId },
+                include: {
+                    workspace: { include: { memberships: true } },
+                    channel: {
+                        include: {
+                            members: true,
+                            workspace: { include: { memberships: true } }
+                        }
+                    }
+                }
+            });
+            if (!connection) {
+                throw new TRPCError({ message: "Connection not found", code: "NOT_FOUND" });
+            }
+            const targetWorkspaceMembership = connection.workspace.memberships.find(member =>
+                member.userId === opts.ctx.user.id && !member.deactivated
+            );
+            const sourceWorkspaceMembership = connection.channel.workspace.memberships.find(member =>
+                member.userId === opts.ctx.user.id && !member.deactivated
+            );
+            const canRemoveFromTarget = targetWorkspaceMembership && targetWorkspaceMembership.role !== "MEMBER";
+            const canRemoveFromSource = sourceWorkspaceMembership
+                && sourceWorkspaceMembership.role !== "MEMBER"
+                && connection.channel.members.some(member => member.userId === sourceWorkspaceMembership.id);
+            if (!canRemoveFromTarget && !canRemoveFromSource) {
+                throw new TRPCError({ message: "Unauthorized", code: "UNAUTHORIZED" });
+            }
+            return prisma.externalChannelConnection.delete({
+                where: { id: connection.id }
+            });
         }),
     
     invite: authProcedure

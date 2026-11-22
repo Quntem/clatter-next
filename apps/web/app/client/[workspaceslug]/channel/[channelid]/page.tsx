@@ -17,16 +17,14 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
     const channel = trpc.channel.get.useQuery({id: channelid})
     const [messages, setMessages] = useState<Message[]>([])
     const [inputContent, setInputContent] = useState("")
+    const channelMessages = channel.data?.messages
     useEffect(() => {
-        if (!channel.data || !channel.data.messages) return
-        if (messages?.length == 0) {
-            setMessages(channel.data?.messages)
-        }
-    }, [channel, messages])
+        if (!channelMessages) return
+        setMessages(current => sortMessages([...current, ...channelMessages]))
+    }, [channelMessages])
     const messagesListen = trpc.channel.listenMessages.useSubscription({channelId: channelid}, {
         onData: (data) => {
-            console.log(data)
-            setMessages([...messages, data])
+            setMessages(current => sortMessages([...current, data]))
         }
     })
     const sendMessageMutation = trpc.channel.sendMessage.useMutation()
@@ -105,6 +103,12 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
     </div>
 }
 
+function sortMessages(messages: Message[]) {
+    return [...new Map(messages.map(message => [message.id, message])).values()].sort((a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() || a.id.localeCompare(b.id)
+    )
+}
+
 function JoinChanelRow({channel, workspace, messagesListen}: {channel: ReturnType<typeof trpc.channel.get.useQuery>, workspace: ReturnType<typeof trpc.workspace.get.useQuery>, messagesListen: ReturnType<typeof trpc.channel.listenMessages.useSubscription>}) {
     const joinChannelMutation = trpc.channel.joinPublicChannel.useMutation({
         onSuccess: () => {
@@ -117,7 +121,7 @@ function JoinChanelRow({channel, workspace, messagesListen}: {channel: ReturnTyp
         <div className="text-lg">#{channel?.data?.name}</div>
         <div className="flex-1" />
         <Button onClick={() => {
-            joinChannelMutation.mutate({channelId: channel?.data?.id, workspaceId: channel?.data?.workspaceId })
+            joinChannelMutation.mutate({channelId: channel?.data?.id, workspaceId: workspace.data?.id })
         }}>
             <PlusIcon />Join
         </Button>

@@ -68,7 +68,7 @@ export const channelsRouter = t.router({
                 }
             });
         }),
-    
+
     get: authProcedure
         .input(z.object({
             id: z.string()
@@ -91,6 +91,10 @@ export const channelsRouter = t.router({
                         }
                     },
                     messages: {
+                        orderBy: [
+                            { createdAt: "asc" },
+                            { id: "asc" }
+                        ],
                         include: {
                             sentBy: true,
                             _count: {
@@ -98,6 +102,11 @@ export const channelsRouter = t.router({
                                     replies: true
                                 }
                             }
+                        }
+                    },
+                    externalConnections: {
+                        include: {
+                            workspace: true
                         }
                     }
                 }
@@ -110,24 +119,32 @@ export const channelsRouter = t.router({
                 });
             }
 
-            // Find the current user's workspace membership
             const membership = await prisma.workspaceMembership.findFirst({
                 where: {
                     workspaceId: channel.workspaceId,
-                    userId: opts.ctx.user.id
+                    userId: opts.ctx.user.id,
+                    deactivated: false
                 }
             });
 
-            if (!membership) {
+            const connectedWorkspaceAccess = channel.visibility === ChannelVisibility.PUBLIC
+                ? await prisma.externalChannelConnection.findFirst({
+                    where: {
+                        channelId: channel.id,
+                        accepted: true,
+                        workspace: { memberships: { some: { userId: opts.ctx.user.id, deactivated: false } } }
+                    }
+                })
+                : null;
+
+            if (!membership && !connectedWorkspaceAccess) {
                 throw new TRPCError({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
                 });
             }
 
-            // Private channels require channel membership.
-            // Public channels are accessible to workspace members.
-            if (channel.visibility !== ChannelVisibility.PUBLIC) {
+            if (channel.visibility !== ChannelVisibility.PUBLIC && membership) {
                 const isChannelMember = channel.members.some(
                     member => member.userId === membership.id
                 );
@@ -180,11 +197,11 @@ export const channelsRouter = t.router({
                 });
             }
 
-            const membership = workspace.memberships.find(
+            const workspaceMembership = workspace.memberships.find(
                 member => member.userId === opts.ctx.user.id
             );
 
-            if (!membership) {
+            if (!workspaceMembership || workspaceMembership.deactivated) {
                 throw new TRPCError({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
@@ -207,9 +224,35 @@ export const channelsRouter = t.router({
                 });
             }
 
-            const channelMembership = channel.members.find(
-                member => member.userId === membership.id
+            if (workspace.id !== channel.workspaceId) {
+                const connected = channel.visibility === ChannelVisibility.PUBLIC
+                    ? await prisma.externalChannelConnection.findFirst({
+                        where: {
+                            channelId: channel.id,
+                            workspaceId: workspace.id,
+                            accepted: true
+                        }
+                    })
+                    : null;
+                if (!connected) {
+                    throw new TRPCError({ message: "Unauthorized", code: "UNAUTHORIZED" });
+                }
+            }
+
+            let channelMembership = channel.members.find(
+                member => member.userId === workspaceMembership.id
             );
+
+            // Older connections may still have a host-workspace membership recorded.
+            // Keep those existing joins usable while new joins use the connected workspace identity.
+            if (!channelMembership && workspace.id !== channel.workspaceId) {
+                const legacyMembership = await prisma.workspaceMembership.findUnique({
+                    where: { userId_workspaceId: { userId: opts.ctx.user.id, workspaceId: channel.workspaceId } }
+                });
+                if (legacyMembership) {
+                    channelMembership = channel.members.find(member => member.userId === legacyMembership.id);
+                }
+            }
 
             if (!channelMembership) {
                 throw new TRPCError({
@@ -222,7 +265,7 @@ export const channelsRouter = t.router({
                 data: {
                     channelId: opts.input.channelId,
                     content: opts.input.content,
-                    sentById: membership.id
+                    sentById: workspaceMembership.id
                 },
                 include: {
                     sentBy: true
@@ -233,7 +276,7 @@ export const channelsRouter = t.router({
 
             return message
         }),
-    
+
     delete: authProcedure
         .input(z.object({channelId: z.string()}))
         .mutation(async (opts) => {
@@ -267,7 +310,7 @@ export const channelsRouter = t.router({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
                 });
-            }    
+            }
 
             const channelMembership = channel.members.find(
                 member => member.userId === membership.id
@@ -278,7 +321,7 @@ export const channelsRouter = t.router({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
                 });
-            }    
+            }
 
             const deleted = await prisma.channel.delete({
                 where: {
@@ -288,7 +331,7 @@ export const channelsRouter = t.router({
 
             return deleted
         }),
-    
+
     removeUser: authProcedure
         .input(z.object({membershipId: z.string()}))
         .mutation(async (opts) => {
@@ -308,7 +351,7 @@ export const channelsRouter = t.router({
                         }
                     }
                 }
-                
+
             })
 
             if (!targetChannelMembership) {
@@ -318,22 +361,41 @@ export const channelsRouter = t.router({
                 });
             }
 
-            const OwnMembership = targetChannelMembership.channel.workspace.memberships.find(
-                member => member.userId === opts.ctx.user.id
+            const actorMemberships = await prisma.workspaceMembership.findMany({
+                where: {
+                    userId: opts.ctx.user.id,
+                    deactivated: false,
+                    OR: [
+                        { workspaceId: targetChannelMembership.channel.workspaceId },
+                        {
+                            workspace: {
+                                externalConnections: {
+                                    some: {
+                                        channelId: targetChannelMembership.channel.id,
+                                        accepted: true
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+            const actorChannelMembership = actorMemberships.find(membership =>
+                targetChannelMembership.channel.members.some(member => member.userId === membership.id)
             );
 
-            if (!OwnMembership) {
+            if (!actorChannelMembership) {
                 throw new TRPCError({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
                 });
-            }    
+            }
 
-            const channelMembership = targetChannelMembership.channel.members.find(
-                member => member.userId === OwnMembership.id
+            const channelMembership = targetChannelMembership.channel.members.find(member =>
+                member.userId === actorChannelMembership.id
             );
 
-            if (!channelMembership || (channelMembership.role == "MEMBER" && OwnMembership.role == "MEMBER" && targetChannelMembership.id !== channelMembership.id) || (OwnMembership.role == "MEMBER" && targetChannelMembership.id !== channelMembership.id)) {
+            if (!channelMembership || (channelMembership.role === "MEMBER" && actorChannelMembership.role === "MEMBER" && targetChannelMembership.id !== channelMembership.id) || (actorChannelMembership.role === "MEMBER" && targetChannelMembership.id !== channelMembership.id)) {
                 throw new TRPCError({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
@@ -342,11 +404,11 @@ export const channelsRouter = t.router({
 
             return await prisma.channelMembership.delete({
                 where: {
-                    id: targetChannelMembership.id 
+                    id: targetChannelMembership.id
                 }
             })
         }),
-    
+
     addUser: authProcedure
         .input(z.object({userId: z.string(), channelId: z.string(), role: z.enum(ChannelRole)}))
         .mutation(async (opts) => {
@@ -375,12 +437,12 @@ export const channelsRouter = t.router({
                 member => member.userId === opts.ctx.user.id
             );
 
-            if (!membership) {
+            if (!membership || membership.deactivated) {
                 throw new TRPCError({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
                 });
-            }    
+            }
 
             const channelMembership = channel.members.find(
                 member => member.userId === membership.id
@@ -403,7 +465,7 @@ export const channelsRouter = t.router({
 
             return newMembership
         }),
-    
+
     joinPublicChannel: authProcedure
         .input(z.object({channelId: z.string(), workspaceId: z.string()}))
         .mutation(async (opts) => {
@@ -427,7 +489,7 @@ export const channelsRouter = t.router({
                 member => member.userId === opts.ctx.user.id
             );
 
-            if (!membership) {
+            if (!membership || membership.deactivated) {
                 throw new TRPCError({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
@@ -455,12 +517,26 @@ export const channelsRouter = t.router({
                 });
             }
 
-            if (channel.workspaceId !== membership.workspaceId || channel.visibility !== "PUBLIC") {
+            const isOwnWorkspace = channel.workspaceId === membership.workspaceId;
+            const externalConnection = !isOwnWorkspace && channel.visibility === "PUBLIC"
+                ? await prisma.externalChannelConnection.findFirst({
+                    where: {
+                        channelId: channel.id,
+                        workspaceId: workspace.id,
+                        accepted: true
+                    }
+                })
+                : null;
+
+            if ((!isOwnWorkspace && !externalConnection) || channel.visibility !== "PUBLIC") {
                 throw new TRPCError({
                     message: "Unauthorized",
                     code: "UNAUTHORIZED"
                 });
             }
+
+            const existingChannelMembership = channel.members.find(item => item.userId === membership.id);
+            if (existingChannelMembership) return existingChannelMembership;
 
             const newMembership = await prisma.channelMembership.create({
                 data: {
@@ -472,7 +548,7 @@ export const channelsRouter = t.router({
 
             return newMembership
         }),
-    
+
     createOrGetDirectMessage: authProcedure
         .input(z.object({
             userId: z.string(),
@@ -567,7 +643,7 @@ export const channelsRouter = t.router({
 
             return await prisma.channel.create({
                 data: {
-                    name: "Direct Message",
+                    name: "direct_message_" + currentMembership.id + "_" + targetMembership.id,
                     visibility: "DIRECT",
                     workspaceId,
                     members: {
@@ -588,4 +664,77 @@ export const channelsRouter = t.router({
             });
         }),
 
+    addExternalConnection: authProcedure
+        .input(z.object({channelId: z.string(), workspaceSlug: z.string().trim().min(1)}))
+        .mutation(async (opts) => {
+            const channel = await prisma.channel.findUnique({
+                where: {
+                    id: opts.input.channelId
+                },
+                include: {
+                    members: true,
+                    workspace: {
+                        include: {
+                            memberships: true
+                        }
+                    }
+                }
+            })
+
+            if (!channel) {
+                throw new TRPCError({
+                    message: "Channel not found",
+                    code: "NOT_FOUND"
+                });
+            }
+
+            const targetWorkspace = await prisma.workspace.findUnique({
+                where: { slug: opts.input.workspaceSlug }
+            });
+
+            if (!targetWorkspace) {
+                throw new TRPCError({ message: "Workspace not found", code: "NOT_FOUND" });
+            }
+            if (targetWorkspace.id === channel.workspaceId) {
+                throw new TRPCError({ message: "This is already the channel's workspace", code: "BAD_REQUEST" });
+            }
+
+            const membership = channel.workspace.memberships.find(
+                member => member.userId === opts.ctx.user.id
+            );
+
+            if (!membership) {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }
+
+            const channelMembership = channel.members.find(
+                member => member.userId === membership.id
+            );
+
+            if (!channelMembership || membership.role == "MEMBER") {
+                throw new TRPCError({
+                    message: "Unauthorized",
+                    code: "UNAUTHORIZED"
+                });
+            }
+
+            const existingConnection = await prisma.externalChannelConnection.findFirst({
+                where: { channelId: channel.id, workspaceId: targetWorkspace.id }
+            });
+            if (existingConnection) {
+                throw new TRPCError({ message: "An invite for this workspace already exists", code: "CONFLICT" });
+            }
+
+            const connection = await prisma.externalChannelConnection.create({
+                data: {
+                    channelId: channel.id,
+                    workspaceId: targetWorkspace.id
+                }
+            })
+
+            return connection
+        })
 });

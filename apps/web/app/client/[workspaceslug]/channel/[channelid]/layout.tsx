@@ -10,7 +10,7 @@ import { Autocomplete, AutocompleteContent, AutocompleteEmpty, AutocompleteInput
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import { Separator } from "@workspace/ui/components/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
-import { ClockIcon, CrownIcon, EyeIcon, FingerprintIcon, HashIcon, InfoIcon, LockIcon, LogOutIcon, MessageSquareIcon, MoreHorizontalIcon, MoreVerticalIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import { ClockIcon, CrownIcon, EyeIcon, FingerprintIcon, HandshakeIcon, HashIcon, InfoIcon, Layers3Icon, LockIcon, LogOutIcon, MessageSquareIcon, MoreHorizontalIcon, MoreVerticalIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { Usable, use, useState } from "react";
 
 export default function({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string, channelid: string}>}) {
@@ -25,11 +25,17 @@ export default function({children, params}: {children: React.JSX.Element, params
             workspace.refetch()
         }
     })
+    const removeExternalConnection = trpc.workspace.removeExternalConnection.useMutation({
+        onSuccess: () => {
+            channel.refetch()
+            workspace.refetch()
+        }
+    })
     return <div className="flex flex-col w-full h-full">
         <div className="h-[50px] w-full border-b-1 px-2 flex flex-row items-center">
             <Dialog>
                 <DialogTrigger render={<Button variant={"ghost"}>
-                    {channel.data?.visibility == "PRIVATE" ? <LockIcon /> : channel.data?.visibility == "DIRECT" ? <UserIcon /> : <HashIcon />}
+                    {channel.data && (channel.data.workspaceId !== workspace.data?.id || channel.data.externalConnections.length > 0) ? <HandshakeIcon /> : channel.data?.visibility == "PRIVATE" ? <LockIcon /> : channel.data?.visibility == "DIRECT" ? <UserIcon /> : <HashIcon />}
                     {channel.data?.visibility !== "DIRECT" ? channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
                 </Button>} />
                 <DialogContent className="p-0 gap-0">
@@ -43,10 +49,14 @@ export default function({children, params}: {children: React.JSX.Element, params
                                     <InfoIcon />
                                     About
                                 </TabsTrigger>
-                                <TabsTrigger value={"members"}>
+                                {channel.data?.visibility !== "DIRECT" && <TabsTrigger value={"members"}>
                                     <UsersIcon />
                                     Members
-                                </TabsTrigger>
+                                </TabsTrigger>}
+                                {channel.data?.visibility !== "DIRECT" && <TabsTrigger value={"external"}>
+                                    <HandshakeIcon />
+                                    External
+                                </TabsTrigger>}
                             </TabsList>
                         </div>
                         <TabsContent value={"about"} className="p-4 flex flex flex-col gap-2">
@@ -121,6 +131,45 @@ export default function({children, params}: {children: React.JSX.Element, params
                             </ItemGroup>
                             <AddUserToChannel channel={channel} workspaceslug={workspaceslug} />
                         </TabsContent>
+                        <TabsContent value={"external"} className="p-4 flex flex flex-col gap-4">
+                            {/* <div className="flex flex-row items-center">
+                                <div className="text-lg font-medium">
+                                    Members ({channel.data?.members.length})
+                                </div>
+                            </div> */}
+                            {removeExternalConnection.error && <p className="text-sm text-destructive">{removeExternalConnection.error.message}</p>}
+                            <ItemGroup className="rounded-lg border-1 overflow-hidden gap-0">
+                                {channel.data?.externalConnections.map((item, index) => {
+                                    return <div key={item.id}>
+                                        {index !== 0 && <Separator />}
+                                        <Item className="hover:bg-foreground/5 rounded-none py-1 flex">
+                                            <ItemMedia variant={"icon"}>
+                                                <Layers3Icon />
+                                            </ItemMedia>
+                                            <ItemContent>
+                                                <ItemTitle>{item.workspace.name}</ItemTitle>
+                                                <ItemDescription>{item.accepted ? "Connected" : "Invite pending"}</ItemDescription>
+                                            </ItemContent>
+                                            <ItemActions>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger render={<Button size="icon" variant={"ghost"}>
+                                                        <MoreVerticalIcon />
+                                                    </Button>} />
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuItem variant="destructive" onClick={() => {
+                                                            removeExternalConnection.mutate({connectionId: item.id})
+                                                        }}>
+                                                            <TrashIcon /> Remove
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </ItemActions>
+                                        </Item>
+                                    </div>
+                                })}
+                            </ItemGroup>
+                            <CreateExternalConnection channel={channel} />
+                        </TabsContent>
                     </Tabs>
                 </DialogContent>
             </Dialog>
@@ -135,7 +184,7 @@ export default function({children, params}: {children: React.JSX.Element, params
                 </Button>} />
                 <DropdownMenuContent className="w-auto">
                     <DropdownMenuItem variant="destructive" onClick={() => {
-                        removeMemberMutaion.mutate({membershipId: channel.data?.members.find(member => member.userId == membership.data?.id)?.id})
+                        removeMemberMutaion.mutate({membershipId: channel.data?.members.find(member => member.membership.userId == membership.data?.userId)?.id})
                     }}>
                         <LogOutIcon /> Leave Channel
                     </DropdownMenuItem>
@@ -188,6 +237,34 @@ function AddUserToChannel({channel, workspaceslug}: {channel: ReturnType<typeof 
                     console.log(user)
                     addUserMigration.mutate({userId: user, channelId: channel.data.id, role: role})
                 }}><PlusIcon />Add User</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+}
+
+function CreateExternalConnection({channel}: {channel: ReturnType<typeof trpc.channel.get.useQuery>}) {
+    const [workspaceSlug, setWorkspaceSlug] = useState("")
+    const [dialogOpen, setDialogOpen] = useState(false)
+    const addExternalConnection = trpc.channel.addExternalConnection.useMutation({
+        onSuccess: () => {
+            channel.refetch()
+            setWorkspaceSlug("")
+            setDialogOpen(false)
+        }
+    })
+    return <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTrigger render={<Button><HandshakeIcon />Invite Workspace</Button>} />
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Invite a workspace to #{channel.data?.name}</DialogTitle>
+            </DialogHeader>
+            <Label htmlFor="external-workspace-slug">Workspace slug</Label>
+            <Input id="external-workspace-slug" value={workspaceSlug} onChange={event => setWorkspaceSlug(event.target.value)} placeholder="e.g. acme" />
+            {addExternalConnection.error && <p className="text-sm text-destructive">{addExternalConnection.error.message}</p>}
+            <DialogFooter>
+                <Button disabled={!workspaceSlug.trim() || addExternalConnection.isPending} onClick={() => {
+                    if (channel.data) addExternalConnection.mutate({channelId: channel.data.id, workspaceSlug})
+                }}><PlusIcon />Send Invite</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

@@ -93,7 +93,7 @@ export default function Page() {
             <div className="flex flex-col gap-4 items-center">
               <h2 className="text-5xl font-bold"><span className="text-gradient font-bold">Unique</span> Features</h2>
               <p className="w-[60%]">
-                Clatter provides many unique and helpful features, free of charge! We believe that all team communication platforms should prioritize features, not AI slop.
+                Clatter provides many unique and helpful features, free of charge! We believe that all team communication platforms should prioritize features, not profit.
               </p>
               <div className="flex flex-col mt-4 gap-4">
                 {FEATURES.map((f, i) => (
