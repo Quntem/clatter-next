@@ -19,7 +19,7 @@ export function WorkspaceSwitcherSidebar() {
 
     return <div className="bg-sidebar w-17.5 border-r h-full flex flex-col items-center gap-4 pt-4">
         {workspaces.data?.map(item => (
-            <WorkspaceSwitcherSidebarItem key={item.workspace.slug} workspace={item} active={pathname.startsWith(`/client/${item.workspace.slug}`)} onClick={() => router.push("/client/" + item.workspace.slug)} />
+            <WorkspaceSwitcherSidebarItem key={item.workspace.slug} workspace={item} active={pathname === `/client/${item.workspace.slug}` || pathname.startsWith(`/client/${item.workspace.slug}/`)} onClick={() => router.push("/client/" + item.workspace.slug)} />
         ))}
         <CreateWorkspaceDialog workspaces={workspaces} />
     </div>
@@ -118,7 +118,7 @@ export function CreateWorkspaceDialog({workspaces}: {workspaces: ReturnType<type
 
 export function WorkspaceSwitcherSidebarItem({active, onClick, workspace}: {active?: boolean, onClick?: () => void, workspace: Workspace}) {
     return <Tooltip>
-        <TooltipTrigger render={<div className={`w-10 h-10 rounded-lg border-foreground transition-all ${active ? "border-2 p-0.5" : "border-0"}`} onClick={onClick}>
+        <TooltipTrigger render={<div className={`w-10 h-10 rounded-lg border-foreground transition-all ${active ? "border-2 p-0.5" : "border-0"} cursor-pointer`} onClick={onClick}>
             <div className={`bg-black w-full h-full transition-all overflow-hidden ${active ? "rounded-sm" : "rounded-lg"}`}>
                 <img src={workspace?.workspace?.image || "/client/assets/wsicon.png"} />
             </div>
