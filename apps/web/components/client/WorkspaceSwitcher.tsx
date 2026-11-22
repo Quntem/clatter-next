@@ -118,11 +118,14 @@ export function CreateWorkspaceDialog({workspaces}: {workspaces: ReturnType<type
 
 export function WorkspaceSwitcherSidebarItem({active, onClick, workspace}: {active?: boolean, onClick?: () => void, workspace: Workspace}) {
     return <Tooltip>
-        <TooltipTrigger render={<div className={`w-10 h-10 rounded-lg border-foreground transition-all ${active ? "border-2 p-0.5" : "border-0"} cursor-pointer`} onClick={onClick}>
-            <div className={`bg-black w-full h-full transition-all overflow-hidden ${active ? "rounded-sm" : "rounded-lg"}`}>
-                <img src={workspace?.workspace?.image || "/client/assets/wsicon.png"} />
+        <TooltipTrigger render={
+            <div className="group relative w-10 h-10 cursor-pointer" onClick={onClick}>
+                <div className={`absolute -left-3.5 top-1/2 -translate-y-1/2 w-1 rounded-r-full bg-foreground transition-[height,opacity] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none ${active ? "h-5 opacity-100" : "h-0 opacity-0 group-hover:h-2 group-hover:opacity-100"}`} />
+                <div className={`bg-black w-full h-full overflow-hidden transition-[border-radius,transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none ${active ? "rounded-xl shadow-md" : "rounded-[20px] group-hover:rounded-xl"}`}>
+                    <img className="size-full object-cover" draggable={false} src={workspace?.workspace?.image || "/client/assets/wsicon.png"}/>
+                </div>
             </div>
-        </div>} />
+        } />
         <TooltipContent side="right">{workspace.workspace.name}</TooltipContent>
     </Tooltip>
 }
