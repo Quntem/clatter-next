@@ -103,6 +103,9 @@ export function CreateWorkspaceDialog({workspaces}: {workspaces: ReturnType<type
                             slug: workspaceSlug
                         }).then(() => {
                             workspaces.refetch()
+                            setDialogOpen(false)
+                            setWorkspaceName("")
+                            setWorkspaceSlg("")
                         })
                     }}>
                         <CheckIcon />Create
@@ -115,7 +118,7 @@ export function CreateWorkspaceDialog({workspaces}: {workspaces: ReturnType<type
 
 export function WorkspaceSwitcherSidebarItem({active, onClick, workspace}: {active?: boolean, onClick?: () => void, workspace: Workspace}) {
     return <Tooltip>
-        <TooltipTrigger render={<div className={`w-[40px] h-[40px] rounded-lg border-foreground transition-all ${active ? "border-2 p-0.5" : "border-0"}`} onClick={onClick}>
+        <TooltipTrigger render={<div className={`w-10 h-10 rounded-lg border-foreground transition-all ${active ? "border-2 p-0.5" : "border-0"}`} onClick={onClick}>
             <div className={`bg-black w-full h-full transition-all overflow-hidden ${active ? "rounded-sm" : "rounded-lg"}`}>
                 <img src={workspace?.workspace?.image || "/client/assets/wsicon.png"} />
             </div>
