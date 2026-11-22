@@ -62,7 +62,7 @@ export const workspaceRouter = t.router({
                 const membership = await prisma.workspaceMembership.create({
                     data: {
                         userId: invite.userId,
-                        name: opts.ctx.session.user.name,
+                        name: opts.ctx.session.user.name ?? opts.ctx.session.user.username ?? "",
                         role: "MEMBER",
                         workspaceId: invite.workspaceId
                     }
@@ -85,7 +85,7 @@ export const workspaceRouter = t.router({
                     memberships: {
                         create: {
                             userId: opts.ctx.user.id,
-                            name: opts.ctx.session.user.name,
+                            name: opts.ctx.session.user.name ?? opts.ctx.session.user.username ?? "",
                             role: "OWNER"
                         }
                     }
@@ -113,7 +113,8 @@ export const workspaceRouter = t.router({
                             channel: {
                                 include: {
                                     workspace: true,
-                                    members: { include: { membership: true } }
+                                    members: { include: { membership: true } },
+                                    externalConnections: true
                                 }
                             }
                         }
@@ -451,10 +452,7 @@ export const workspaceRouter = t.router({
     getMembership: authProcedure
         .input(z.object({workspaceId: z.string(), userId: z.string().optional()}))
         .query(async (opts) => {
-            var userId = opts.input.userId
-            if (!opts.input.userId) {
-                userId = opts.ctx.user.id
-            }
+            const userId = opts.input.userId ?? opts.ctx.user.id
 
             const membership = await prisma.workspaceMembership.findUnique({
                 where: {

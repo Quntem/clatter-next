@@ -60,14 +60,14 @@ export const authProcedure = t.procedure.use(async (opts) => {
             update: {
                 keystoneId: session.user.id,
                 username: session.user.username + (session.tenant?.name ? `_${session.tenant.name}` : ""),
-                keystoneObject: session.user,
-                email: session.user.email,
+                keystoneObject: JSON.parse(JSON.stringify(session.user)),
+                email: session.user.email ?? "",
             },
             create: {
                 keystoneId: session.user.id,
                 username: session.user.username + (session.tenant?.name ? `_${session.tenant.name}` : ""),
-                keystoneObject: session.user,
-                email: session.user.email,
+                keystoneObject: JSON.parse(JSON.stringify(session.user)),
+                email: session.user.email ?? "",
             },
             where: {
                 keystoneId: session.user.id,

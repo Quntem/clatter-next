@@ -1,8 +1,9 @@
 "use client"
+import { skipToken } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
 import { CheckIcon, ImageIcon, MoreVerticalIcon, SaveIcon, TextIcon, UserPlusIcon, XIcon } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
-import { Usable, use, useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@workspace/ui/components/dropdown-menu";
@@ -10,10 +11,10 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle }
 import { Separator } from "@workspace/ui/components/separator";
 import { Input } from "@workspace/ui/components/input";
 
-export default function AdminHome({params}: {params: Usable<{workspaceslug: string}>}) {
+export default function AdminHome({params}: {params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
-    const [workspaceName, setWorkspaceName] = useState(null)
-    const [workspaceImage, setWorkspaceImage] = useState(null)
+    const [workspaceName, setWorkspaceName] = useState<string | null>(null)
+    const [workspaceImage, setWorkspaceImage] = useState<string | null>(null)
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
     useEffect(() => {
@@ -22,7 +23,7 @@ export default function AdminHome({params}: {params: Usable<{workspaceslug: stri
             setWorkspaceImage(workspace.data.image || "")
         }
     }, [workspace])
-    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
     const updateWorkspace = trpc.workspace.update.useMutation({
         onSuccess: () => {
             workspace.refetch()
@@ -32,8 +33,9 @@ export default function AdminHome({params}: {params: Usable<{workspaceslug: stri
         <div className="w-full flex flex-row items-center">
             <h1 className="text-2xl font-medium">Workspace Info</h1>
             <div className="flex-1" />
-            <Button onClick={() => {
-                updateWorkspace.mutate({workspaceId: workspace.data.id, image: workspaceImage, name: workspaceName})
+            <Button disabled={!workspace.data} onClick={() => {
+                if (!workspace.data) return
+                updateWorkspace.mutate({workspaceId: workspace.data.id, image: workspaceImage ?? undefined, name: workspaceName ?? undefined})
             }}>
                 <SaveIcon /> Save Changes
             </Button>
@@ -50,7 +52,7 @@ export default function AdminHome({params}: {params: Usable<{workspaceslug: stri
                     </ItemDescription>
                 </ItemContent>
                 <ItemActions>
-                    <Input value={workspaceImage} onChange={ev => setWorkspaceImage(ev.target.value)} />
+                    <Input value={workspaceImage ?? ""} onChange={ev => setWorkspaceImage(ev.target.value)} />
                 </ItemActions>
             </Item>
             <Separator />
@@ -65,7 +67,7 @@ export default function AdminHome({params}: {params: Usable<{workspaceslug: stri
                     </ItemDescription>
                 </ItemContent>
                 <ItemActions>
-                    <Input value={workspaceName} onChange={ev => setWorkspaceName(ev.target.value)} />
+                    <Input value={workspaceName ?? ""} onChange={ev => setWorkspaceName(ev.target.value)} />
                 </ItemActions>
             </Item>
         </div>

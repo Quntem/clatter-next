@@ -1,4 +1,5 @@
 "use client"
+import { skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog";
@@ -11,12 +12,12 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Separator } from "@workspace/ui/components/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { ClockIcon, CrownIcon, EyeIcon, FingerprintIcon, HandshakeIcon, HashIcon, InfoIcon, Layers3Icon, LockIcon, LogOutIcon, MessageSquareIcon, MoreHorizontalIcon, MoreVerticalIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon, UserPlusIcon, UsersIcon } from "lucide-react";
-import { Usable, use, useState } from "react";
+import { use, useState } from "react";
 
-export default function({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string, channelid: string}>}) {
+export default function({children, params}: {children: React.ReactNode, params: Promise<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
-    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
     const channel = trpc.channel.get.useQuery({id: channelid})
     
     const removeMemberMutaion = trpc.channel.removeUser.useMutation({
@@ -188,7 +189,8 @@ export default function({children, params}: {children: React.JSX.Element, params
                 </Button>} />
                 <DropdownMenuContent className="w-auto">
                     <DropdownMenuItem variant="destructive" onClick={() => {
-                        removeMemberMutaion.mutate({membershipId: channel.data?.members.find(member => member.membership.userId == membership.data?.userId)?.id})
+                        const memberId = channel.data?.members.find(member => member.membership.userId == membership.data?.userId)?.id
+                        if (memberId) removeMemberMutaion.mutate({membershipId: memberId})
                     }}>
                         <LogOutIcon /> Leave Channel
                     </DropdownMenuItem>
@@ -201,10 +203,10 @@ export default function({children, params}: {children: React.JSX.Element, params
     </div>
 }
 
-function AddUserToChannel({channel, workspaceslug}: {channel: ReturnType<typeof trpc.channel.get.useQuery>, workspaceslug: string}) {
+function AddUserToChannel({channel, workspaceslug}: {channel: {data: any; refetch: () => Promise<unknown>}, workspaceslug: string}) {
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
     const [user, setUser] = useState("")
-    const [role, setRole] = useState<"ADMIN" | "MEMBER">("MEMBER")
+    const [role, setRole] = useState<"ADMIN" | "MEMBER" | null>("MEMBER")
     const [dialogOpen, setDialogOpen] = useState(false)
     const addUserMigration = trpc.channel.addUser.useMutation({
         onSuccess: () => {
@@ -239,14 +241,14 @@ function AddUserToChannel({channel, workspaceslug}: {channel: ReturnType<typeof 
             <DialogFooter>
                 <Button onClick={() => {
                     console.log(user)
-                    addUserMigration.mutate({userId: user, channelId: channel.data.id, role: role})
+                    if (channel.data) addUserMigration.mutate({userId: user, channelId: channel.data.id, role: role ?? "MEMBER"})
                 }}><PlusIcon />Add User</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
 }
 
-function CreateExternalConnection({channel}: {channel: ReturnType<typeof trpc.channel.get.useQuery>}) {
+function CreateExternalConnection({channel}: {channel: {data: any; refetch: () => Promise<unknown>}}) {
     const [workspaceSlug, setWorkspaceSlug] = useState("")
     const [dialogOpen, setDialogOpen] = useState(false)
     const addExternalConnection = trpc.channel.addExternalConnection.useMutation({

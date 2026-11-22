@@ -1,14 +1,15 @@
 "use client"
+import { skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@workspace/ui/components/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table";
 import { TrashIcon } from "lucide-react";
-import { Usable, use } from "react";
+import { use } from "react";
 
-export default function ExternalConnectionsPage({params}: {params: Usable<{workspaceslug: string}>}) {
+export default function ExternalConnectionsPage({params}: {params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
-    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
     const acceptExternalConnection = trpc.workspace.acceptExternalConnection.useMutation({
         onSuccess: () => workspace.refetch()
     })

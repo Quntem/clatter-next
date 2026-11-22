@@ -1,6 +1,6 @@
 "use client"
+import { skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
-import { Channel, Message } from "@workspace/backend/generated/prisma/client";
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@workspace/ui/components/input-group";
@@ -8,23 +8,23 @@ import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/component
 import { Separator } from "@workspace/ui/components/separator";
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@workspace/ui/components/ui/emoji-picker";
 import { CrownIcon, PlusIcon, SendIcon, SmileIcon, UserIcon } from "lucide-react";
-import { Usable, use, useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
-export default function({params}: {params: Usable<{workspaceslug: string, channelid: string}>}) {
+export default function({params}: {params: Promise<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
-    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
     const channel = trpc.channel.get.useQuery({id: channelid})
-    const [messages, setMessages] = useState<Message[]>([])
+    const [messages, setMessages] = useState<MessageView[]>([])
     const [inputContent, setInputContent] = useState("")
     const channelMessages = channel.data?.messages
     useEffect(() => {
         if (!channelMessages) return
-        setMessages(current => sortMessages([...current, ...channelMessages]))
+        setMessages(current => sortMessages([...current, ...(channelMessages as MessageView[])]))
     }, [channelMessages])
     const messagesListen = trpc.channel.listenMessages.useSubscription({channelId: channelid}, {
         onData: (data) => {
-            setMessages(current => sortMessages([...current, data]))
+            setMessages(current => sortMessages([...current, data as MessageView]))
         }
     })
     const sendMessageMutation = trpc.channel.sendMessage.useMutation()
@@ -103,13 +103,21 @@ export default function({params}: {params: Usable<{workspaceslug: string, channe
     </div>
 }
 
-function sortMessages(messages: Message[]) {
+type MessageView = {
+    id: string
+    createdAt: Date | string
+    sentById: string
+    sentBy?: { name?: string | null; profilePicture?: string | null }
+    content: { blocks?: { type: string; content?: string }[] } | null
+}
+
+function sortMessages(messages: MessageView[]) {
     return [...new Map(messages.map(message => [message.id, message])).values()].sort((a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() || a.id.localeCompare(b.id)
     )
 }
 
-function JoinChanelRow({channel, workspace, messagesListen}: {channel: ReturnType<typeof trpc.channel.get.useQuery>, workspace: ReturnType<typeof trpc.workspace.get.useQuery>, messagesListen: ReturnType<typeof trpc.channel.listenMessages.useSubscription>}) {
+function JoinChanelRow({channel, workspace, messagesListen}: {channel: {data: any; refetch: () => Promise<unknown>}, workspace: {data: any; refetch: () => Promise<unknown>}, messagesListen: {reset: () => void}}) {
     const joinChannelMutation = trpc.channel.joinPublicChannel.useMutation({
         onSuccess: () => {
             channel.refetch()
@@ -128,14 +136,14 @@ function JoinChanelRow({channel, workspace, messagesListen}: {channel: ReturnTyp
     </div>
 }
 
-function MessageItem({compact=false, message}: {compact?: boolean, message: Message}) {
+function MessageItem({compact=false, message}: {compact?: boolean, message: MessageView}) {
     return <div className="w-full px-6 pb-1 pt-1 hover:bg-black/5 flex flex-row gap-3">
         {compact ? <div className="w-[40px] mt-0.5" /> : <div className="h-[40px] w-[40px] rounded-md border-1 bg-muted mt-0.5 flex flex-col items-center justify-center overflow-hidden">
-            {message.sentBy.profilePicture ? <img src={message.sentBy.profilePicture} /> : <UserIcon size={20} />}
+            {message.sentBy?.profilePicture ? <img src={message.sentBy.profilePicture} /> : <UserIcon size={20} />}
         </div>}
         <div className="flex flex-col">
             {!compact && <div className="flex flex-row items-center gap-2">
-                <div className="font-semibold text-sm">{message.sentBy.name}</div>
+                <div className="font-semibold text-sm">{message.sentBy?.name}</div>
                 <div className="text-sm">{new Date(message.createdAt).toLocaleTimeString()}</div>
                 {/* <CrownIcon size="12" /> */}
             </div>}

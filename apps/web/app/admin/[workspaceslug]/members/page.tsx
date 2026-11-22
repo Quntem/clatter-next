@@ -1,17 +1,18 @@
 "use client"
+import { skipToken } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
 import { CheckIcon, MoreVerticalIcon, UserPlusIcon, XIcon } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
-import { Usable, use, useState } from "react";
+import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@workspace/ui/components/dropdown-menu";
 
-export default function AdminHome({params}: {params: Usable<{workspaceslug: string}>}) {
+export default function AdminHome({params}: {params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
-    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
     const deactivate = trpc.workspace.modifyUserActivation.useMutation({
         onSuccess: () => {
             workspace.refetch()

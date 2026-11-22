@@ -1,4 +1,5 @@
 "use client"
+import { skipToken } from "@tanstack/react-query";
 import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@workspace/ui/components/button";
@@ -7,14 +8,14 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, 
 import { Separator } from "@workspace/ui/components/separator";
 import { BookUserIcon, CheckIcon, MessageSquareIcon, MoreVerticalIcon, SearchIcon, UserIcon, UserPlusIcon, UsersIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Usable, use, useState } from "react";
+import { use, useState } from "react";
 
-export default function({params}: {params: Usable<{workspaceslug: string}>}) {
+export default function({params}: {params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
     const router = useRouter()
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
-    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
     const createWorkspace = trpc.channel.createOrGetDirectMessage.useMutation()
     const deactivate = trpc.workspace.modifyUserActivation.useMutation({
         onSuccess: () => {

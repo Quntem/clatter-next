@@ -1,4 +1,5 @@
 "use client"
+import { skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@workspace/ui/components/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@workspace/ui/components/dropdown-menu";
@@ -6,7 +7,7 @@ import { Field, FieldTitle } from "@workspace/ui/components/field";
 import { SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenuButton, SidebarGroupLabel, Sidebar } from "@workspace/ui/components/sidebar";
 import { ChevronDownIcon, UserPlusIcon, WrenchIcon, PaintbrushIcon, IdCardIcon, UsersIcon, ExternalLinkIcon, SettingsIcon, LogOutIcon, SquarePenIcon, BookUserIcon, HashIcon, LockIcon, HandshakeIcon, UserIcon, UserShield, LayoutGridIcon, SparklesIcon, PencilIcon, PlusIcon, EyeIcon, ShieldXIcon, InfoIcon } from "lucide-react";
 import { Input } from "@workspace/ui/components/input";
-import { Usable, use, useState } from "react";
+import { use, useState } from "react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthContext } from "@/lib/auth";
@@ -15,7 +16,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@
 import { CreateChannelDialog } from "@/createChannelDialog";
 import { UserSettingsDialog } from "@/components/client/userSettings";
 
-export default function WorkspaceLayout({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string}>}) {
+export default function WorkspaceLayout({children, params}: {children: React.ReactNode, params: Promise<{workspaceslug: string}>}) {
     const router = useRouter()
     const pathname = usePathname()
     const { workspaceslug } = use(params)
@@ -24,7 +25,7 @@ export default function WorkspaceLayout({children, params}: {children: React.JSX
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
     const auth = useAuthContext()
-    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
     if (workspace.isError || membership.isError) {
         return <div className="w-full h-full flex flex-col items-center justify-center">
             <Empty>

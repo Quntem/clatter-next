@@ -6,7 +6,7 @@ import { Input } from "@workspace/ui/components/input"
 import { PlusIcon, SaveIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
-export function UserSettingsDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: ReturnType<typeof trpc.workspace.get.useQuery>}) {
+export function UserSettingsDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: any) => void, workspace: {data: any; refetch: () => Promise<unknown>}}) {
     const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace?.data?.id})
     const updateMembership = trpc.workspace.updateMembership.useMutation({
         onSuccess: () => {
@@ -14,8 +14,8 @@ export function UserSettingsDialog({open, setOpen, workspace}: {open: boolean, s
             workspace.refetch()
         }
     })
-    const [name, setName] = useState(null)
-    const [picture, setPicture] = useState(null)
+    const [name, setName] = useState<string | null>(null)
+    const [picture, setPicture] = useState<string | null>(null)
     useEffect(() => {
         if (membership.data && name == null && picture == null) {
             setName(membership.data.name)
@@ -29,15 +29,15 @@ export function UserSettingsDialog({open, setOpen, workspace}: {open: boolean, s
             </DialogHeader>
             <Field>
                 <FieldTitle>Name</FieldTitle>
-                <Input placeholder="Name" value={name} onChange={ev => setName(ev.target.value)} />
+                <Input placeholder="Name" value={name ?? ""} onChange={ev => setName(ev.target.value)} />
             </Field>
             <Field>
                 <FieldTitle>Picture</FieldTitle>
-                <Input placeholder="Picture" value={picture} onChange={ev => setPicture(ev.target.value)} />
+                <Input placeholder="Picture" value={picture ?? ""} onChange={ev => setPicture(ev.target.value)} />
             </Field>
             <DialogFooter>
                 <Button onClick={() => {
-                    updateMembership.mutate({workspaceId: workspace.data.id, profilePicture: picture, name: name})
+                    if (workspace.data) updateMembership.mutate({workspaceId: workspace.data.id, profilePicture: picture ?? undefined, name: name ?? undefined})
                 }}>
                     <SaveIcon />Save
                 </Button>

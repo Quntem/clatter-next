@@ -45,7 +45,7 @@ export default function TrpcProvider({children, authState}: {children: React.JSX
                             headers: {
                                 authorization: authState.data?.sessionId ? "Bearer " + authState.data.sessionId : ""
                             }
-                        })
+                        } as EventSourceInit)
                     }),
                     false: httpBatchLink({
                         url: '/trpc',

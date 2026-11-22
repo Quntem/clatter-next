@@ -7,9 +7,9 @@ import { useState } from "react"
 import { trpc } from "./lib/trpc"
 import { Input } from "@workspace/ui/components/input"
 
-export function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: ReturnType<typeof trpc.workspace.get.useQuery>}) {
+export function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: {data: any; refetch: () => Promise<unknown>}}) {
     const [channelName, setChannelName] = useState("")
-    const [channelVisibility, setChannelVisibility] = useState(null)
+    const [channelVisibility, setChannelVisibility] = useState<"PUBLIC" | "PRIVATE" | null>(null)
     const createChannel = trpc.channel.create.useMutation({
         onSuccess: () => {
             workspace.refetch()
@@ -46,7 +46,7 @@ export function CreateChannelDialog({open, setOpen, workspace}: {open: boolean, 
             </Field>
             <DialogFooter>
                 <Button disabled={channelName == "" || channelName !== channelName.toLowerCase() || channelVisibility == null || channelName.includes(" ")} onClick={() => {
-                    createChannel.mutate({name: channelName, visibility: channelVisibility, workspaceId: workspace.data.id})
+                    if (workspace.data) createChannel.mutate({name: channelName, visibility: channelVisibility ?? "PUBLIC", workspaceId: workspace.data.id})
                 }}><PlusIcon />Create</Button>
             </DialogFooter>
         </DialogContent>

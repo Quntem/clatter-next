@@ -6,9 +6,9 @@ import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@works
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenuButton, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { ArrowLeftIcon, HandshakeIcon, HashIcon, IdCardLanyardIcon, InfoIcon, UsersIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { Usable, use } from "react";
+import { use } from "react";
 
-export default function adminLayout({children, params}: {children: React.JSX.Element, params: Usable<{workspaceslug: string}>}) {
+export default function adminLayout({children, params}: {children: React.ReactNode, params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
     const router = useRouter()
     const path = usePathname()

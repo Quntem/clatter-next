@@ -6,7 +6,7 @@ import { Input } from "@workspace/ui/components/input"
 import { PlusIcon } from "lucide-react"
 import { useState } from "react"
 
-export function InviteUserDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: ReturnType<typeof trpc.workspace.get.useQuery>}) {
+export function InviteUserDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: {data: any; refetch: () => Promise<unknown>}}) {
     const [userEmail, setUserEmail] = useState("")
     const inviteMember = trpc.workspace.invite.useMutation({
         onSuccess: () => {

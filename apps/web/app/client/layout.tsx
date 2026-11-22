@@ -5,7 +5,7 @@ import React from "react";
 import { SidebarProvider } from "@workspace/ui/components/sidebar"
 import { AuthProvider } from "@/lib/auth";
 
-export default function ClientLayout({children}: {children: React.JSX.Element}) {
+export default function ClientLayout({children}: {children: React.ReactNode}) {
     return (
         <AuthProvider>
             <SidebarProvider>

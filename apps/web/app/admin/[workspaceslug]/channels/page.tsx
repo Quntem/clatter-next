@@ -1,8 +1,9 @@
 "use client"
+import { skipToken } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
 import { CheckIcon, MoreVerticalIcon, PlusCircleIcon, TrashIcon, UserPlusIcon, XIcon } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
-import { Usable, use, useState } from "react";
+import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@workspace/ui/components/dropdown-menu";
@@ -10,11 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Channel } from "@workspace/backend/generated/prisma/client";
 import { CreateChannelDialog } from "@/createChannelDialog";
 
-export default function AdminHome({params}: {params: Usable<{workspaceslug: string}>}) {
+export default function AdminHome({params}: {params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
     const [createChannelDialogOpen, setCreateChannelDialogOpen] = useState(false)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
-    const membership = trpc.workspace.getMembership.useQuery({workspaceId: workspace.data?.id})
+    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
     const [channelToDelete, setChannelToDelete] = useState<Channel | null>(null)
     const [deleteChannelDialogOpen, setDeleteChannelDialogOpen] = useState(false)
     const deactivate = trpc.workspace.modifyUserActivation.useMutation({
