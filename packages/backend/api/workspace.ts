@@ -206,6 +206,81 @@ export const workspaceRouter = t.router({
             };
         }),
 
+    search: authProcedure
+        .input(z.object({ slug: z.string(), query: z.string().trim().min(1).max(100) }))
+        .query(async (opts) => {
+            const workspace = await prisma.workspace.findUnique({
+                where: { slug: opts.input.slug },
+                include: { memberships: true, externalConnections: { where: { accepted: true }, include: { channel: { include: { members: true } } } } }
+            });
+
+            if (!workspace) {
+                throw new TRPCError({ message: "Workspace not found", code: "NOT_FOUND" });
+            }
+
+            const membership = workspace.memberships.find(member => member.userId === opts.ctx.user.id && !member.deactivated);
+            if (!membership) {
+                throw new TRPCError({ message: "Unauthorized", code: "UNAUTHORIZED" });
+            }
+
+            const channels = await prisma.channel.findMany({
+                where: {
+                    workspaceId: workspace.id,
+                    OR: [
+                        { visibility: ChannelVisibility.PUBLIC },
+                        { members: { some: { userId: membership.id } } }
+                    ]
+                },
+                select: { id: true, name: true, visibility: true }
+            });
+            const connectedChannels = workspace.externalConnections
+                .map(connection => connection.channel)
+                .filter(channel => channel.visibility === ChannelVisibility.PUBLIC)
+                .map(channel => ({ id: channel.id, name: channel.name, visibility: channel.visibility }));
+            const accessibleChannels = [...new Map([...channels, ...connectedChannels].map(channel => [channel.id, channel])).values()];
+            const rawQuery = opts.input.query.trim();
+            const channelFilterMatch = rawQuery.match(/^channel:([^\s]+)\s*(.*)$/i);
+            const channelFilter = channelFilterMatch
+                ? accessibleChannels.find(channel => channel.name.toLocaleLowerCase() === channelFilterMatch[1]?.toLocaleLowerCase())
+                : undefined;
+            const query = (channelFilterMatch?.[2] ?? rawQuery).toLocaleLowerCase();
+            const searchedChannels = channelFilterMatch
+                ? (channelFilter ? [channelFilter] : [])
+                : accessibleChannels;
+            const channelMatches = channelFilterMatch
+                ? (channelFilter ? [channelFilter] : [])
+                : query ? accessibleChannels.filter(channel => channel.name.toLocaleLowerCase().includes(query)).slice(0, 10) : [];
+            const userMatches = query ? workspace.memberships
+                .filter(member => !member.deactivated && member.name.toLocaleLowerCase().includes(query))
+                .slice(0, 10)
+                .map(({ id, name, profilePicture }) => ({ id, name, profilePicture })) : [];
+
+            if (searchedChannels.length === 0 || !query) {
+                return { channels: channelMatches, users: userMatches, messages: [] };
+            }
+
+            const recentMessages = await prisma.message.findMany({
+                where: { channelId: { in: searchedChannels.map(channel => channel.id) } },
+                orderBy: { createdAt: "desc" },
+                take: 1000,
+                include: { sentBy: { select: { name: true } }, channel: { select: { name: true } } }
+            });
+            const messages = recentMessages.filter(message => {
+                const content = message.content as { blocks?: Array<{ content?: unknown }> };
+                const text = content.blocks?.map(block => typeof block.content === "string" ? block.content : "").join(" ") ?? "";
+                return text.toLocaleLowerCase().includes(query);
+            }).slice(0, 10).map(message => ({
+                id: message.id,
+                channelId: message.channelId,
+                channelName: message.channel.name,
+                senderName: message.sentBy.name,
+                createdAt: message.createdAt,
+                preview: (message.content as { blocks?: Array<{ content?: unknown }> }).blocks?.map(block => typeof block.content === "string" ? block.content : "").join(" ") ?? ""
+            }));
+
+            return { channels: channelMatches, users: userMatches, messages };
+        }),
+
     acceptExternalConnection: authProcedure
         .input(z.object({connectionId: z.string()}))
         .mutation(async (opts) => {

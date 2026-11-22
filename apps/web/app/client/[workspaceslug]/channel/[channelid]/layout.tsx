@@ -175,7 +175,11 @@ export default function({children, params}: {children: React.JSX.Element, params
             </Dialog>
             {/* <p className="text-sm text-muted-foreground ml-2">Channel Description</p> */}
             <div className="flex-1" />
-            <Button variant={"ghost"} size="icon">
+            <Button variant={"ghost"} size="icon" disabled={!channel.data} onClick={() => {
+                window.dispatchEvent(new CustomEvent("clatter:open-search", {
+                    detail: { query: `channel:${channel.data?.name ?? ""} ` }
+                }))
+            }}>
                 <SearchIcon />
             </Button>
             <DropdownMenu>
