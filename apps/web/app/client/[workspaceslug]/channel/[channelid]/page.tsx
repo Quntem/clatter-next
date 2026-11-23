@@ -16,7 +16,7 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
     const workspace = useWorkspace(workspaceslug)
     const membership = useMembership(workspace.data?.id)
     const channel = useChannel(channelid)
-    const ready = !!workspace.data && !channel.data && !workspace.isPlaceholderData && !channel.isPlaceholderData
+    const ready = !!workspace.data && !!channel.data && !workspace.isPlaceholderData && !channel.isPlaceholderData
     const isMember = ready && !!workspace.data?.channels.some(item => item.id === channel.data?.id)
     const [liveMessages, setLiveMessages] = useState<MessageView[]>([])
     const [inputContent, setInputContent] = useState("")
