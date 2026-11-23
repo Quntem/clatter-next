@@ -16,14 +16,16 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
     const workspace = useWorkspace(workspaceslug)
     const membership = useMembership(workspace.data?.id)
     const channel = useChannel(channelid)
+    const ready = !!workspace.data && !channel.data && !workspace.isPlaceholderData && !channel.isPlaceholderData
+    const isMember = ready && !!workspace.data?.channels.some(item => item.id === channel.data?.id)
     const [liveMessages, setLiveMessages] = useState<MessageView[]>([])
     const [inputContent, setInputContent] = useState("")
     const channelMessages = channel.data?.messages
     const messages = useMemo(() => {
         const fetched = (channelMessages ?? []) as MessageView[]
-        return channel.isPlaceholderData ? fetched : sortMessages([...fetched, ...liveMessages])
+        return channel.isPlaceholderData ? [] : sortMessages([...fetched, ...liveMessages])
     }, [channelMessages, channel.isPlaceholderData, liveMessages])
-    const channelTitle = !channel.data ? "" : channel.data.visibility !== "DIRECT" ? "#" + channel.data.name : (channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name ?? "")
+    const channelTitle = !channel.data || channel.isPlaceholderData ? "" : channel.data.visibility !== "DIRECT" ? "#" + channel.data.name : (channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name ?? "")
     const messagesListen = trpc.channel.listenMessages.useSubscription({channelId: channelid}, {
         onData: (data) => {
             setLiveMessages(current => [...current, data as MessageView])
@@ -46,8 +48,8 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
             {/* <MessageItem />
             <MessageItem compact /> */}
         </div>
-        <div className={`w-full p-6 pt-0 ${workspace.data?.channels.find(item => item.id == channel.data?.id) ? "" : " border-t-1"}`}>
-            {workspace.data?.channels.find(item => item.id == channel.data?.id) ? <InputGroup>
+        <div className={`w-full p-6 pt-0 ${!ready || isMember ? "" : " border-t"}`}>
+            {!ready ? null : isMember ? <InputGroup>
                 <InputGroupTextarea value={inputContent} onChange={ev => setInputContent(ev.target.value)} onKeyDown={(ev) => {
                     if (!ev.shiftKey && ev.key == "Enter") {
                         ev.preventDefault()

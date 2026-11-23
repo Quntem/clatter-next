@@ -20,6 +20,7 @@ export default function({children, params}: {children: React.ReactNode, params: 
     const workspace = useWorkspace(workspaceslug)
     const membership = useMembership(workspace.data?.id)
     const channel = useChannel(channelid)
+    const settled = !!channel.data && !channel.isPlaceholderData && !workspace.isPlaceholderData && !membership.isPlaceholderData
     
     const removeMemberMutaion = trpc.channel.removeUser.useMutation({
         onSuccess: () => {
@@ -37,8 +38,8 @@ export default function({children, params}: {children: React.ReactNode, params: 
         <div className="h-[50px] w-full border-b-1 px-2 flex flex-row items-center">
             <Dialog>
                 <DialogTrigger render={<Button variant={"ghost"}>
-                    {channel.data && (channel.data.workspaceId !== workspace.data?.id || channel.data.externalConnections.length > 0) ? <HandshakeIcon /> : channel.data?.visibility == "PRIVATE" ? <LockIcon /> : channel.data?.visibility == "DIRECT" ? <UserIcon /> : <HashIcon />}
-                    {channel.data?.visibility !== "DIRECT" ? channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
+                    {settled && channel.data && (channel.data.workspaceId !== workspace.data?.id || channel.data.externalConnections.length > 0) ? <HandshakeIcon /> : channel.data?.visibility == "PRIVATE" ? <LockIcon /> : channel.data?.visibility == "DIRECT" ? <UserIcon /> : <HashIcon />}
+                    {!settled ? "" : channel.data?.visibility !== "DIRECT" ? channel.data?.name : channel.data?.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
                 </Button>} />
                 <DialogContent className="p-0 gap-0">
                     <DialogHeader className="p-4 pb-2">
