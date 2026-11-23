@@ -15,7 +15,7 @@ export function useMembership(workspaceId: string | undefined): ReturnType<typeo
 }
 
 export function useChannel(channelId: string): ReturnType<typeof trpc.channel.get.useQuery> {
-  return trpc.workspace.get.useQuery({id: channelId}, { staleTime: 5000 })
+  return trpc.channel.get.useQuery({id: channelId}, { staleTime: 5000 })
 }
 
 let navToken = 0
