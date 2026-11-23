@@ -8,4 +8,6 @@ const server = createHTTPServer({
   createContext: sessionIdContext,
 });
 
-server.listen(3001);
+const port = Number(process.env.BACKEND_PORT ?? 3001);
+
+server.listen(port);

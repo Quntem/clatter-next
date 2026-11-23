@@ -1,5 +1,8 @@
 # backend
 
+Set `BACKEND_PORT` in `packages/backend/.env` to choose the backend port. It defaults to `3001`.
+Set the same variable in `apps/web/.env` so the web app's `/trpc` rewrite points to that port.
+
 To install dependencies:
 
 ```bash
