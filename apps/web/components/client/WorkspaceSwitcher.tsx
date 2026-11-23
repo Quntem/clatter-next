@@ -96,7 +96,7 @@ export function CreateWorkspaceDialog({workspaces}: {workspaces: ReturnType<type
                     <Button variant={"outline"} onClick={() => setDialogOpen(false)}>
                         <XIcon />Cancel
                     </Button>
-                    <Button onClick={() => {
+                    <Button disabled={!workspaceName.trim() || !workspaceSlug.trim() || createWorkspaceMutation.isPending} onClick={() => {
                         createWorkspaceMutation.mutateAsync({
                             name: workspaceName,
                             slug: workspaceSlug

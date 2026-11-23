@@ -73,8 +73,8 @@ export const workspaceRouter = t.router({
 
     create: authProcedure
         .input(z.object({
-            name: z.string(),
-            slug: z.string(),
+            name: z.string().trim().min(1),
+            slug: z.string().trim().min(1),
             image: z.string().optional()
         }))
         .mutation(async (opts) => {
