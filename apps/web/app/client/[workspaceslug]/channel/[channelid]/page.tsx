@@ -1,5 +1,5 @@
 "use client"
-import { skipToken } from "@tanstack/react-query";
+import { keepPreviousData, skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
@@ -8,23 +8,25 @@ import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/component
 import { Separator } from "@workspace/ui/components/separator";
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@workspace/ui/components/ui/emoji-picker";
 import { CrownIcon, PlusIcon, SendIcon, SmileIcon, UserIcon } from "lucide-react";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
+import { useChannel, useMembership, useWorkspace } from "@/lib/queries";
 
 export default function({params}: {params: Promise<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
-    const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
-    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
-    const channel = trpc.channel.get.useQuery({id: channelid})
-    const [messages, setMessages] = useState<MessageView[]>([])
+    const workspace = useWorkspace(workspaceslug)
+    const membership = useMembership(workspace.data?.id)
+    const channel = useChannel(channelid)
+    const [liveMessages, setLiveMessages] = useState<MessageView[]>([])
     const [inputContent, setInputContent] = useState("")
     const channelMessages = channel.data?.messages
-    useEffect(() => {
-        if (!channelMessages) return
-        setMessages(current => sortMessages([...current, ...(channelMessages as MessageView[])]))
-    }, [channelMessages])
+    const messages = useMemo(() => {
+        const fetched = (channelMessages ?? []) as MessageView[]
+        return channel.isPlaceholderData ? fetched : sortMessages([...fetched, ...liveMessages])
+    }, [channelMessages, channel.isPlaceholderData, liveMessages])
+    const channelTitle = !channel.data ? "" : channel.data.visibility !== "DIRECT" ? "#" + channel.data.name : (channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name ?? "")
     const messagesListen = trpc.channel.listenMessages.useSubscription({channelId: channelid}, {
         onData: (data) => {
-            setMessages(current => sortMessages([...current, data as MessageView]))
+            setLiveMessages(current => [...current, data as MessageView])
         }
     })
     const sendMessageMutation = trpc.channel.sendMessage.useMutation()
@@ -33,7 +35,7 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
             <div className="flex-1 flex flex-col px-6 pb-4">
                 <div className="flex-1" />
                 <div className="text-xl mb-1">
-                    {channel.data?.visibility !== "DIRECT" ? "#" + channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
+                    {channelTitle}
                 </div>
                 <div className="mb-4">This is the start of this {channel.data?.visibility !== "DIRECT" ? "channel" : "conversation"}</div>
                 <Separator />
@@ -60,7 +62,7 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
                             setInputContent("")
                         })
                     }
-                }} rows={1} placeholder={`Message ${channel.data?.visibility !== "DIRECT" ? "#" + channel.data?.name : channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}`} />
+                }} rows={1} placeholder={`Message ${channelTitle}`} />
                 <InputGroupAddon className="flex flex-row" align={"block-end"}>
                     {/* <Button size="icon-sm">
                         <PlusIcon />

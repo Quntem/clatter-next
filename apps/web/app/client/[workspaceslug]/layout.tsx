@@ -1,5 +1,5 @@
 "use client"
-import { skipToken } from "@tanstack/react-query";
+import { keepPreviousData, skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@workspace/ui/components/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@workspace/ui/components/dropdown-menu";
@@ -15,6 +15,7 @@ import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@workspace/ui/components/empty"
 import { CreateChannelDialog } from "@/createChannelDialog";
 import { UserSettingsDialog } from "@/components/client/userSettings";
+import { useMembership, useWorkspace } from "@/lib/queries";
 
 export default function WorkspaceLayout({children, params}: {children: React.ReactNode, params: Promise<{workspaceslug: string}>}) {
     const router = useRouter()
@@ -23,9 +24,9 @@ export default function WorkspaceLayout({children, params}: {children: React.Rea
     const [userSettingsDialogOpen, setUserSettingsDialogOpen] = useState(false)
     const [createChannelDialogOpen, setCreateChannelDialogOpen] = useState(false)
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
-    const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
+    const workspace = useWorkspace(workspaceslug)
     const auth = useAuthContext()
-    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
+    const membership = useMembership(workspace.data?.id)
     if (workspace.isError || membership.isError) {
         return <div className="w-full h-full flex flex-col items-center justify-center">
             <Empty>

@@ -1,5 +1,5 @@
 "use client"
-import { skipToken } from "@tanstack/react-query";
+import { keepPreviousData, skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog";
@@ -13,12 +13,13 @@ import { Separator } from "@workspace/ui/components/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { ClockIcon, CrownIcon, EyeIcon, FingerprintIcon, HandshakeIcon, HashIcon, InfoIcon, Layers3Icon, LockIcon, LogOutIcon, MessageSquareIcon, MoreHorizontalIcon, MoreVerticalIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { use, useState } from "react";
+import { useChannel, useMembership, useWorkspace } from "@/lib/queries";
 
 export default function({children, params}: {children: React.ReactNode, params: Promise<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
-    const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
-    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
-    const channel = trpc.channel.get.useQuery({id: channelid})
+    const workspace = useWorkspace(workspaceslug)
+    const membership = useMembership(workspace.data?.id)
+    const channel = useChannel(channelid)
     
     const removeMemberMutaion = trpc.channel.removeUser.useMutation({
         onSuccess: () => {

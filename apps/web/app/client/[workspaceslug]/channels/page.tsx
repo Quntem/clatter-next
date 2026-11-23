@@ -1,5 +1,5 @@
 "use client"
-import { skipToken } from "@tanstack/react-query";
+import { keepPreviousData, skipToken } from "@tanstack/react-query";
 import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { CreateChannelDialog } from "@/createChannelDialog";
 import { trpc } from "@/lib/trpc";
@@ -11,13 +11,14 @@ import { Separator } from "@workspace/ui/components/separator";
 import { BookUserIcon, CheckIcon, HandshakeIcon, HashIcon, LockIcon, MessageSquareIcon, MoreVerticalIcon, PlusIcon, SearchIcon, UserIcon, UserPlusIcon, UsersIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
+import { useMembership, useWorkspace } from "@/lib/queries";
 
 export default function({params}: {params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
     const router = useRouter()
-    const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
+    const workspace = useWorkspace(workspaceslug)
     const [createChannelDialogOpen, setCreateChannelDialogOpen] = useState(false)
-    const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
+    const membership = useMembership(workspace.data?.id)
     const createWorkspace = trpc.channel.createOrGetDirectMessage.useMutation()
     const deactivate = trpc.workspace.modifyUserActivation.useMutation({
         onSuccess: () => {
@@ -25,7 +26,7 @@ export default function({params}: {params: Promise<{workspaceslug: string}>}) {
         }
     })
     return <div className="flex flex-col w-full h-full">
-        <div className="h-[50px] w-full border-b-1 px-2 flex flex-row items-center">
+        <div className="h-12.5 w-full border-b px-2 flex flex-row items-center">
             <Button variant={"ghost"}>
                 <HashIcon />
                 Channels
