@@ -9,11 +9,11 @@ import { Separator } from "@workspace/ui/components/separator";
 import { BookUserIcon, CheckIcon, MessageSquareIcon, MoreVerticalIcon, SearchIcon, UserIcon, UserPlusIcon, UsersIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
-import { useMembership, useWorkspace } from "@/lib/queries";
+import { useMembership, useReadyNavigation, useWorkspace } from "@/lib/queries";
 
 export default function({params}: {params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
-    const router = useRouter()
+    const nav = useReadyNavigation()
     const workspace = useWorkspace(workspaceslug)
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
     const membership = useMembership(workspace.data?.id)
@@ -74,9 +74,8 @@ export default function({params}: {params: Promise<{workspaceslug: string}>}) {
                                                 {item.deactivated ? <><CheckIcon /> Activate User</> : <><XIcon /> Deactivate User</>}
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => {
-                                                createWorkspace.mutateAsync({workspaceId: workspace.data.id, userId: item.userId}).then(res => {
-                                                    router.push("/client/" + workspaceslug + "/channel/" + res.id)
-                                                })
+                                                createWorkspace.mutateAsync({workspaceId: workspace.data.id, userId: item.userId})
+                                                    .then(res => nav.toChannel(workspaceslug, res.id))
                                             }}>
                                                 <MessageSquareIcon /> Direct message
                                             </DropdownMenuItem>

@@ -10,16 +10,23 @@ import { InputGroup, InputGroupInput, InputGroupText } from "@workspace/ui/compo
 import { Field, FieldTitle } from "@workspace/ui/components/field"
 import { usePathname, useRouter } from "next/navigation"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu"
+import { useReadyNavigation } from "@/lib/queries"
 
 export function WorkspaceSwitcherSidebar() {
     const workspaces = trpc.workspace.list.useQuery()
-    const router = useRouter()
     const pathname = usePathname()
+    const nav = useReadyNavigation()
+    const [pendingSlug, setPendingSlug] = useState<string | null>(null)
 
     return <div className="bg-sidebar w-17.5 border-r h-full flex flex-col items-center gap-4 pt-4">
-        {workspaces.data?.map(item => (
-            <WorkspaceSwitcherSidebarItem key={item.workspace.slug} workspace={item} active={pathname === `/client/${item.workspace.slug}` || pathname.startsWith(`/client/${item.workspace.slug}/`)} onClick={() => router.push("/client/" + item.workspace.slug)} />
-        ))}
+        {workspaces.data?.map(item => {
+            const slug = item.workspace.slug
+            const active = pendingSlug ? pendingSlug === slug : pathname === `/client/${slug}` || pathname.startsWith(`/client/${slug}/`)
+            return <WorkspaceSwitcherSidebarItem key={slug} workspace={item} active={active} onClick={() => {
+                setPendingSlug(slug)
+                nav.toWorkspace(slug).finally(() => setPendingSlug(null))
+            }} />
+        })}
         <CreateWorkspaceDialog workspaces={workspaces} />
     </div>
 }

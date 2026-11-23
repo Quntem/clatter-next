@@ -11,14 +11,14 @@ import { Separator } from "@workspace/ui/components/separator";
 import { BookUserIcon, CheckIcon, HandshakeIcon, HashIcon, LockIcon, MessageSquareIcon, MoreVerticalIcon, PlusIcon, SearchIcon, UserIcon, UserPlusIcon, UsersIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
-import { useMembership, useWorkspace } from "@/lib/queries";
+import { useMembership, useReadyNavigation, useWorkspace } from "@/lib/queries";
 
 export default function({params}: {params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
-    const router = useRouter()
     const workspace = useWorkspace(workspaceslug)
     const [createChannelDialogOpen, setCreateChannelDialogOpen] = useState(false)
     const membership = useMembership(workspace.data?.id)
+    const nav = useReadyNavigation()
     const createWorkspace = trpc.channel.createOrGetDirectMessage.useMutation()
     const deactivate = trpc.workspace.modifyUserActivation.useMutation({
         onSuccess: () => {
@@ -55,9 +55,7 @@ export default function({params}: {params: Promise<{workspaceslug: string}>}) {
                     {workspace.data?.channels.filter(item => item.visibility !== "DIRECT").map((item, index) => {
                         return <div key={index}>
                             {index !== 0 && <Separator />}
-                            <Item className="hover:bg-foreground/5 rounded-none py-1 flex" onClick={() => {
-                                router.push("/client/" + workspaceslug + "/channel/" + item.id)
-                            }}>
+                            <Item className="hover:bg-foreground/5 rounded-none py-1 flex" onClick={() => nav.toChannel(workspaceslug, item.id)}>
                                 <ItemMedia variant={"icon"} className="pt-1.5">
                                     {item.workspaceId !== workspace.data?.id || item.externalConnections.length > 0 ? <HandshakeIcon /> : item.visibility == "PUBLIC" ? <HashIcon /> : <LockIcon />}
                                 </ItemMedia>
@@ -92,9 +90,7 @@ export default function({params}: {params: Promise<{workspaceslug: string}>}) {
                     {workspace.data?.availableChannels.filter(item => item.members.filter(el => el.membership.id == membership.data?.id).length == 0).filter(item => item.visibility !== "DIRECT").map((item, index) => {
                         return <div key={index}>
                             {index !== 0 && <Separator />}
-                            <Item className="hover:bg-foreground/5 rounded-none py-1 flex" onClick={() => {
-                                router.push("/client/" + workspaceslug + "/channel/" + item.id)
-                            }}>
+                            <Item className="hover:bg-foreground/5 rounded-none py-1 flex" onClick={() => nav.toChannel(workspaceslug, item.id)}>
                                 <ItemMedia variant={"icon"} className="pt-1.5">
                                     {item.workspaceId !== workspace.data?.id || item.externalConnections.length > 0 ? <HandshakeIcon /> : item.visibility == "PUBLIC" ? <HashIcon /> : <LockIcon />}
                                 </ItemMedia>

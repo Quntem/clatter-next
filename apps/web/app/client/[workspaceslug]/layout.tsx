@@ -15,7 +15,7 @@ import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@workspace/ui/components/empty"
 import { CreateChannelDialog } from "@/createChannelDialog";
 import { UserSettingsDialog } from "@/components/client/userSettings";
-import { useMembership, useWorkspace } from "@/lib/queries";
+import { useMembership, useReadyNavigation, useWorkspace } from "@/lib/queries";
 
 export default function WorkspaceLayout({children, params}: {children: React.ReactNode, params: Promise<{workspaceslug: string}>}) {
     const router = useRouter()
@@ -26,6 +26,7 @@ export default function WorkspaceLayout({children, params}: {children: React.Rea
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
     const workspace = useWorkspace(workspaceslug)
     const auth = useAuthContext()
+    const nav = useReadyNavigation()
     const membership = useMembership(workspace.data?.id)
     if (workspace.isError || membership.isError) {
         return <div className="w-full h-full flex flex-col items-center justify-center">
@@ -134,7 +135,7 @@ export default function WorkspaceLayout({children, params}: {children: React.Rea
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         {workspace.data?.channels.filter(channel => channel.visibility !== "DIRECT").map(channel => {
-                            return <SidebarMenuButton key={channel.id} onClick={() => router.push(`/client/${workspaceslug}/channel/${channel.id}`)} isActive={pathname == `/client/${workspaceslug}/channel/${channel.id}`}>
+                            return <SidebarMenuButton key={channel.id} onClick={() => nav.toChannel(workspaceslug, channel.id)} isActive={pathname == `/client/${workspaceslug}/channel/${channel.id}`}>
                                 {channel.workspaceId !== workspace.data?.id || channel.externalConnections.length > 0 ? <HandshakeIcon /> : channel.visibility == "PRIVATE" ? <LockIcon /> : <HashIcon />}
                                 {channel.name}
                             </SidebarMenuButton>
@@ -159,7 +160,7 @@ export default function WorkspaceLayout({children, params}: {children: React.Rea
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         {workspace.data?.channels?.filter(channel => channel.visibility == "DIRECT").map(channel => {
-                            return <SidebarMenuButton key={channel.id} onClick={() => router.push(`/client/${workspaceslug}/channel/${channel.id}`)} isActive={pathname == `/client/${workspaceslug}/channel/${channel.id}`}>
+                            return <SidebarMenuButton key={channel.id} onClick={() => nav.toChannel(workspaceslug, channel.id)} isActive={pathname == `/client/${workspaceslug}/channel/${channel.id}`}>
                                 <UserIcon />
                                 {channel.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name}
                             </SidebarMenuButton>
