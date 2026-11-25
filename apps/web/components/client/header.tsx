@@ -1,8 +1,7 @@
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@workspace/ui/components/input-group"
 import { CodeIcon, InfoIcon, Layers3Icon, LogOutIcon, MessageSquareIcon, MonitorIcon, MoonIcon, Palette, SearchIcon, SettingsIcon, SunIcon, UserIcon, XIcon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { useAuthContext } from "@/lib/auth"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui/components/tooltip"
 import { Button } from "@workspace/ui/components/button"
 import { Menubar, MenubarCheckboxItem, MenubarContent, MenubarGroup, MenubarItem, MenubarMenu, MenubarRadioGroup, MenubarRadioItem, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from "@workspace/ui/components/menubar"
@@ -11,9 +10,9 @@ import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@workspace/ui/components/command"
 import { useEffect, useState } from "react"
-import { Kbd } from "@workspace/ui/components/kbd"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog"
 import { setWorkspaceTheme, useWorkspaceTheme, WorkspaceTheme } from "@/lib/workspaceTheme"
+import { useReadyNavigation } from "@/lib/queries"
 
 export function ClientHeader() {
     const theme = useTheme()
@@ -21,6 +20,7 @@ export function ClientHeader() {
     const workspaces = trpc.workspace.list.useQuery()
     const router = useRouter()
     const pathname = usePathname()
+    const nav = useReadyNavigation()
     const [commandDialogOpen, setCommandDialogOpen] = useState(false)
     const [searchValue, setSearchValue] = useState("")
     const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
@@ -70,7 +70,7 @@ export function ClientHeader() {
                         )}
                         {workspaces.data?.map(item => {
                             return <MenubarCheckboxItem key={item.id} checked={pathname === "/client/" + item.workspace.slug || pathname.startsWith("/client/" + item.workspace.slug + "/")} onClick={() => {
-                                router.push("/client/" + item.workspace.slug)
+                                nav.toWorkspace(item.workspace.slug)
                             }}>
                                 {item.workspace.name}
                             </MenubarCheckboxItem>
@@ -127,14 +127,14 @@ export function ClientHeader() {
             </InputGroupAddon>
             <InputGroupInput placeholder="Search Workspace" />
         </InputGroup> */}
-        <Button variant={"outline"} className="bg-white w-[600px] absolute left-[50%] -translate-x-[50%] max-h-[28px]" onClick={() => setCommandDialogOpen(true)}>
+        <Button variant={"outline"} className="bg-white w-150 absolute left-[50%] translate-x-[-50%] max-h-7" onClick={() => setCommandDialogOpen(true)}>
             <SearchIcon />Search Workspace 
             {/* <Kbd>⌘K</Kbd> */}
         </Button>
         <CommandDialog open={commandDialogOpen} onOpenChange={(open) => {
             setCommandDialogOpen(open)
             if (!open) setSearchValue("")
-        }} className="top-2 min-w-[600px]">
+        }} className="top-2 min-w-150">
             <Command>
                 <CommandInput value={searchValue} onValueChange={setSearchValue} placeholder={workspaceSlug ? "Search messages, channels, and people..." : "Search workspaces..."} />
                 <CommandList>
@@ -166,7 +166,7 @@ export function ClientHeader() {
                     </> : <CommandGroup heading={workspaceSlug ? "Workspaces" : "Workspaces"}>
                         {workspaces.data?.map(item => <CommandItem key={item.id} onSelect={() => {
                             setCommandDialogOpen(false)
-                            router.push("/client/" + item.workspace.slug)
+                            nav.toWorkspace(item.workspace.slug)
                         }}><Layers3Icon />{item.workspace.name}</CommandItem>)}
                     </CommandGroup>}
                 </CommandList>

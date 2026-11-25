@@ -10,6 +10,7 @@ import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch }
 import { CrownIcon, PlusIcon, SendIcon, SmileIcon, UserIcon } from "lucide-react";
 import { use, useEffect, useMemo, useState } from "react";
 import { useChannel, useMembership, useWorkspace } from "@/lib/queries";
+import { setLastChannel } from "@/lib/lastChannel";
 
 export default function({params}: {params: Promise<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
@@ -21,6 +22,10 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
     const [liveMessages, setLiveMessages] = useState<MessageView[]>([])
     const [inputContent, setInputContent] = useState("")
     const channelMessages = channel.data?.messages
+    const channelLoaded = !!channel.data
+    useEffect(() => {
+        if (channelLoaded) setLastChannel(workspaceslug, channelid)
+    }, [channelLoaded, workspaceslug, channelid])
     const messages = useMemo(() => {
         const fetched = (channelMessages ?? []) as MessageView[]
         return channel.isPlaceholderData ? [] : sortMessages([...fetched, ...liveMessages])
