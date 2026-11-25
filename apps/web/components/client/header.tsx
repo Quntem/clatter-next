@@ -1,5 +1,5 @@
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@workspace/ui/components/input-group"
-import { CodeIcon, InfoIcon, Layers3Icon, LogOutIcon, MessageSquareIcon, MonitorIcon, MoonIcon, SearchIcon, SettingsIcon, SunIcon, UserIcon, XIcon } from "lucide-react"
+import { CodeIcon, InfoIcon, Layers3Icon, LogOutIcon, MessageSquareIcon, MonitorIcon, MoonIcon, Palette, SearchIcon, SettingsIcon, SunIcon, UserIcon, XIcon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { useAuthContext } from "@/lib/auth"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu"
@@ -13,6 +13,7 @@ import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, Comma
 import { useEffect, useState } from "react"
 import { Kbd } from "@workspace/ui/components/kbd"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog"
+import { setWorkspaceTheme, useWorkspaceTheme, WorkspaceTheme } from "@/lib/workspaceTheme"
 
 export function ClientHeader() {
     const theme = useTheme()
@@ -33,6 +34,8 @@ export function ClientHeader() {
         return () => window.removeEventListener("clatter:open-search", openSearch)
     }, [])
     const workspaceSlug = pathname.startsWith("/client/") ? pathname.split("/")[2] : undefined
+    const currentSlug = pathname.split("/")[2]
+    const workspaceTheme = useWorkspaceTheme(currentSlug)
     const search = trpc.workspace.search.useQuery(
         { slug: workspaceSlug ?? "", query: searchValue.trim() },
         { enabled: commandDialogOpen && !!workspaceSlug && searchValue.trim().length > 0 }
@@ -100,6 +103,20 @@ export function ClientHeader() {
                                 </MenubarRadioGroup>
                             </MenubarSubContent>
                         </MenubarSub>
+                        {currentSlug && <MenubarSub>
+                            <MenubarSubTrigger>
+                                <Palette /> Palette    
+                            </MenubarSubTrigger>
+                            <MenubarSubContent>
+                                <MenubarRadioGroup value={workspaceTheme} onValueChange={value => {
+                                    setWorkspaceTheme(currentSlug, value as WorkspaceTheme)
+                                    window.location.reload()
+                                }}>
+                                    <MenubarRadioItem value="default">Default</MenubarRadioItem>
+                                    <MenubarRadioItem value="blue">Blue</MenubarRadioItem>
+                                </MenubarRadioGroup>
+                            </MenubarSubContent>
+                        </MenubarSub>}
                     </MenubarGroup>
                 </MenubarContent>
             </MenubarMenu>

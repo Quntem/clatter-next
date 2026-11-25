@@ -16,6 +16,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyMedia, EmptyTitle } from "@
 import { CreateChannelDialog } from "@/createChannelDialog";
 import { UserSettingsDialog } from "@/components/client/userSettings";
 import { useMembership, useReadyNavigation, useWorkspace } from "@/lib/queries";
+import { useApplyWorkspaceTheme } from "@/lib/workspaceTheme";
 
 export default function WorkspaceLayout({children, params}: {children: React.ReactNode, params: Promise<{workspaceslug: string}>}) {
     const router = useRouter()
@@ -28,6 +29,7 @@ export default function WorkspaceLayout({children, params}: {children: React.Rea
     const auth = useAuthContext()
     const nav = useReadyNavigation()
     const membership = useMembership(workspace.data?.id)
+    useApplyWorkspaceTheme(workspaceslug)
     if (workspace.isError || membership.isError) {
         return <div className="w-full h-full flex flex-col items-center justify-center">
             <Empty>
