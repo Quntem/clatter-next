@@ -1,8 +1,7 @@
 "use client";
 
-import { QueryClient, QueryKey, skipToken, useQueryClient } from "@tanstack/react-query";
+import { skipToken } from "@tanstack/react-query";
 import { trpc } from "./trpc";
-import { getQueryKey } from "@trpc/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 
