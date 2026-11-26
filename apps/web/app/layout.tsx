@@ -26,6 +26,9 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", fontMono.variable, "font-sans", figtree.variable)}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var m=location.pathname.match(/^\\/client\\/([^\\/]+)/);if(!m)return;var t=JSON.parse(localStorage.getItem("clatter-workspace-themes")||"{}")[decodeURIComponent(m[1])];if(t&&t!=="default")document.documentElement.setAttribute("data-workspace-theme",t)}catch(e){}})()` }} />
+      </head>
       <body>
         <ThemeProvider><TooltipProvider>{children}</TooltipProvider></ThemeProvider>
       </body>
