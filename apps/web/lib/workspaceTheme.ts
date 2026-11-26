@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useSyncExternalStore } from "react";
 
-export type WorkspaceTheme = "default" | "blue";
+export type WorkspaceTheme = "default" | "blue" | "blossom";
 
 function read(): Record<string, WorkspaceTheme> {
   try {

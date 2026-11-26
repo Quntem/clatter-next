@@ -114,6 +114,7 @@ export function ClientHeader() {
                                 }}>
                                     <MenubarRadioItem value="default">Default</MenubarRadioItem>
                                     <MenubarRadioItem value="blue">Blue</MenubarRadioItem>
+                                    <MenubarRadioItem value="blossom">Blossom</MenubarRadioItem>
                                 </MenubarRadioGroup>
                             </MenubarSubContent>
                         </MenubarSub>}
