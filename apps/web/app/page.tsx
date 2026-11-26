@@ -8,7 +8,7 @@ export default function Page() {
   const [flame, setFlame] = useState(1);
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="overflow-x-hidden text-text-primary">
       <title>Clatter</title>
       <section className="min-h-dvh flex flex-col pt-12 pb-6">
         <header className="flex items-center px-[15dvw]">
