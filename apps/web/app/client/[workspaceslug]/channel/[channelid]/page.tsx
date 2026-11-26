@@ -1,16 +1,15 @@
 "use client"
-import { keepPreviousData, skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
-import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@workspace/ui/components/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { Separator } from "@workspace/ui/components/separator";
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@workspace/ui/components/ui/emoji-picker";
-import { CrownIcon, PlusIcon, SendIcon, SmileIcon, UserIcon } from "lucide-react";
+import { PlusIcon, SendIcon, SmileIcon, User, UserIcon } from "lucide-react";
 import { use, useEffect, useMemo, useState } from "react";
 import { useChannel, useMembership, useWorkspace } from "@/lib/queries";
 import { setLastChannel } from "@/lib/lastChannel";
+import { formatClock, formatMessageTime, useNow } from "@/lib/time";
 
 export default function({params}: {params: Promise<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
@@ -146,14 +145,18 @@ function JoinChanelRow({channel, workspace, messagesListen}: {channel: {data: an
 }
 
 function MessageItem({compact=false, message}: {compact?: boolean, message: MessageView}) {
-    return <div className="w-full px-6 pb-1 pt-1 hover:bg-black/5 flex flex-row gap-3">
-        {compact ? <div className="w-[40px] mt-0.5" /> : <div className="h-[40px] w-[40px] rounded-md border-1 bg-muted mt-0.5 flex flex-col items-center justify-center overflow-hidden">
-            {message.sentBy?.profilePicture ? <img src={message.sentBy.profilePicture} /> : <UserIcon size={20} />}
-        </div>}
+    return <div className="group w-full px-6 pb-1 pt-1 hover:bg-black/5 flex flex-row gap-3">
+        {compact
+            ? <div className="w-10 shrink-0 mt-0.5 text-center text-[10px] leading-5 text-muted-foreground opacity-0 group-hover:opacity-100">
+                <MessageTime date={message.createdAt} clock />
+            </div>
+            : <div className="h-10 w-10 rounded-md border bg-muted mt-0.5 flex flex-col items-center justify-center overflow-hidden">
+                {message.sentBy?.profilePicture ? <img src={message.sentBy.profilePicture} /> : <User size={20} />}
+            </div>}
         <div className="flex flex-col">
             {!compact && <div className="flex flex-row items-center gap-2">
                 <div className="font-semibold text-sm">{message.sentBy?.name}</div>
-                <div className="text-sm">{new Date(message.createdAt).toLocaleTimeString()}</div>
+                <MessageTime date={message.createdAt} className="text-xs text-muted-foreground" />
                 {/* <CrownIcon size="12" /> */}
             </div>}
             <div>{message?.content?.blocks?.map((block, index) => {
@@ -164,4 +167,16 @@ function MessageItem({compact=false, message}: {compact?: boolean, message: Mess
             })}</div>
         </div>
     </div>
+}
+
+function MessageTime({ date, clock = false, className }: { date: Date | string, clock?: boolean, className?: string }) {
+    const now = useNow()
+    const value = new Date(date)
+    return <time
+        dateTime={value.toISOString()}
+        title={value.toLocaleString([], { dateStyle: "full", timeStyle: "medium" })}
+        className={className}
+    >
+        {clock ? formatClock(value) : formatMessageTime(value, now)}
+    </time>
 }
