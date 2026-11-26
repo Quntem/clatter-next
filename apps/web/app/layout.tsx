@@ -3,7 +3,6 @@ import { Geist_Mono, Figtree } from "next/font/google"
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils";
-
 import { TooltipProvider } from "@workspace/ui/components/tooltip";
 
 const figtree = Figtree({

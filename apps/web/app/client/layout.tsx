@@ -6,6 +6,7 @@ import { SidebarProvider } from "@workspace/ui/components/sidebar"
 import { AuthProvider } from "@/lib/auth";
 
 import "./workspace-theme.css"
+import { ClientSplash } from "@/components/client/SplashScreen";
 
 export default function ClientLayout({children}: {children: React.ReactNode}) {
     return (
@@ -18,6 +19,7 @@ export default function ClientLayout({children}: {children: React.ReactNode}) {
                         <WorkspaceSwitcherSidebar />
                         {children}
                     </div>
+                    <ClientSplash />
                 </div>
             </SidebarProvider>
         </AuthProvider>

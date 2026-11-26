@@ -4,6 +4,7 @@ import { trpc } from "./trpc";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, httpSubscriptionLink, splitLink } from "@trpc/client";
 import { EventSourcePolyfill } from "event-source-polyfill";
+import { SplashScreen } from "@/components/client/SplashScreen";
 
 
 type authContextType = {
@@ -25,9 +26,7 @@ export function AuthProvider({children}: {children: React.JSX.Element}) {
     return <authContext.Provider value={{
         authState
     }}>
-        {authState.data !== null && <TrpcProvider authState={authState}>
-            {children}
-        </TrpcProvider>}
+        {authState.data !== null ? <TrpcProvider authState={authState}>{children}</TrpcProvider> : <SplashScreen visible />}
     </authContext.Provider>
 }
 
