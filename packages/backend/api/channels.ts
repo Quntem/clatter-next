@@ -1,4 +1,3 @@
-
 import z from "zod";
 import { authProcedure, t } from "../trpc";
 import { ChannelRole, ChannelVisibility } from "../generated/prisma/enums";
@@ -6,9 +5,10 @@ import { prisma } from "../prisma";
 import { TRPCError } from "@trpc/server";
 import {EventEmitter, on} from "events"
 import type { Message } from "../generated/prisma/client";
-import { id } from "zod/v4/locales";
 
 const ee = new EventEmitter()
+
+type ChannelEvent = | {type: "message", channelId: string, message: Message } | { type: "delete", channelId: string, messageIds: string[] }
 
 export const channelsRouter = t.router({
     create: authProcedure
@@ -167,13 +167,13 @@ export const channelsRouter = t.router({
         .subscription(async function* (opts) {
             const channelId = opts.input.channelId;
 
-            for await (const [data] of on(ee, "channel.message", {
+            for await (const [data] of on(ee, "channel.event", {
                 signal: opts.signal
             })) {
-                const message = data as Message;
+                const event = data as ChannelEvent
 
-                if (message.channelId === channelId) {
-                    yield message;
+                if (event.channelId === channelId) {
+                    yield event
                 }
             }
         }),
@@ -272,7 +272,7 @@ export const channelsRouter = t.router({
                 }
             })
 
-            ee.emit("channel.message", message)
+            ee.emit("channel.event", { type: "message", channelId: message.channelId, message } satisfies ChannelEvent)
 
             return message
         }),
@@ -387,6 +387,8 @@ export const channelsRouter = t.router({
             await prisma.message.deleteMany({
                 where: { id: { in: messageIds }, channelId: channel.id }
             })
+
+            ee.emit("channel.event", { type: "delete", channelId: channel.id, messageIds } satisfies ChannelEvent)
 
             return { deletedIds: messageIds }
         }),

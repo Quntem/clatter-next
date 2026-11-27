@@ -87,20 +87,29 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
         return () => window.removeEventListener("keydown", onKeyDown)
     })
     const channelTitle = !channel.data || channel.isPlaceholderData ? "" : channel.data.visibility !== "DIRECT" ? "#" + channel.data.name : (channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name ?? "")
+    const removeMessages = (ids: string[]) => {
+        const removed = new Set(ids)
+        utils.channel.get.setData({id: channelid}, old => old && {
+            ...old,
+            messages: old.messages.filter(item => !removed.has(item.id))
+        })
+        setLiveMessages(current => current.filter(item => !removed.has(item.id)))
+        setSelectedIds(current => new Set([...current].filter(id => !removed.has(id))))
+        setPendingDelete(current => current.filter(item => !removed.has(item.id)))
+    }
     const messagesListen = trpc.channel.listenMessages.useSubscription({channelId: channelid}, {
-        onData: (data) => {
-            setLiveMessages(current => [...current, data as MessageView])
+        onData: (event) => {
+            if (event.type === "delete") {
+                removeMessages(event.messageIds)
+            } else {
+                setLiveMessages(current => [...current, event.message as MessageView])
+            }
         }
     })
     const sendMessageMutation = trpc.channel.sendMessage.useMutation()
     const deleteMessagesMutation = trpc.channel.deleteMessage.useMutation({
         onSuccess: (_, variables) => {
-            const removed = new Set(variables.messageIds)
-            utils.channel.get.setData({id: channelid}, old => old && {
-                ...old,
-                messages: old.messages.filter(item => !removed.has(item.id))
-            })
-            setLiveMessages(current => current.filter(item => !removed.has(item.id)))
+            removeMessages(variables.messageIds)
             clearSelection()
             setPendingDelete([])
         }
