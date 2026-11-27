@@ -5,7 +5,7 @@ import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@workspace/ui/c
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { Separator } from "@workspace/ui/components/separator";
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@workspace/ui/components/ui/emoji-picker";
-import { PlusIcon, SendIcon, SmileIcon, User, UserIcon } from "lucide-react";
+import { Check, PlusIcon, SendIcon, SmileIcon, SquareDashed, SquareDashedPlus, SquareDashedX, User, UserIcon, X } from "lucide-react";
 import React, { use, useEffect, useMemo, useState } from "react";
 import { useChannel, useMembership, useWorkspace } from "@/lib/queries";
 import { setLastChannel } from "@/lib/lastChannel";
@@ -60,6 +60,18 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
         })
         setAnchorId(id)
     }
+    const toggleMessage = (id: string) => {
+        setSelectedIds(current => {
+            const next = new Set(current)
+            if (next.has(id)) {
+                next.delete(id)
+            } else {
+                next.add(id)
+            }
+            return next
+        })
+        setAnchorId(id)
+    }
     useEffect(() => {
         const onKeyDown = (ev: KeyboardEvent) => {
             if (ev.key === "Escape") {
@@ -87,17 +99,12 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
                 <Separator />
             </div>
             {messages?.map((item, index) => {
-                return <MessageItem key={item.id} message={item} compact={(index !== 0) && (messages[index - 1]?.sentById == item.sentById)} selected={selectedIds.has(item.id)} onSelect={ev => selectMessage(item.id, ev)} />
+                return <MessageItem key={item.id} message={item} compact={(index !== 0) && (messages[index - 1]?.sentById == item.sentById)} selected={selectedIds.has(item.id)} selectedCount={selectedIds.size} onSelect={ev => selectMessage(item.id, ev)} onToggleSelect={() => toggleMessage(item.id)} onClearSelection={clearSelection} />
             })}
             {/* <MessageItem />
             <MessageItem compact /> */}
         </div>
         <div className={`w-full p-6 pt-0 ${!ready || isMember ? "" : " border-t"}`}>
-            {selectedMessages.length > 0 && <div className="mb-3 flex flex-row items-center gap-2 rounded-md border bg-muted px-3 py-1.5 text-sm">
-                <span>{selectedMessages.length} selected</span>
-                <div className="flex-1" />
-                <Button size={"sm"} variant={"ghost"} onClick={clearSelection}>Clear</Button>
-            </div>}
             {!ready ? null : isMember ? <InputGroup>
                 <InputGroupTextarea value={inputContent} onChange={ev => setInputContent(ev.target.value)} onKeyDown={(ev) => {
                     if (!ev.shiftKey && ev.key == "Enter") {
@@ -189,16 +196,17 @@ function JoinChanelRow({channel, workspace, messagesListen}: {channel: {data: an
     </div>
 }
 
-function MessageItem({compact=false, message, selected=false, onSelect}: {compact?: boolean, message: MessageView, selected?: boolean, onSelect?: (ev: React.MouseEvent) => void}) {
+function MessageItem({compact=false, message, selected=false, selectedCount=0, onSelect, onToggleSelect, onClearSelection}: {compact?: boolean, message: MessageView, selected?: boolean, selectedCount?: number, onSelect?: (ev: React.MouseEvent) => void, onToggleSelect?: () => void, onClearSelection?: () => void}) {
     return <div
         data-selected={selected}
         onClick={onSelect}
         onMouseDown={ev => { if (ev.shiftKey) ev.preventDefault() }}
         className={cn(
-            "group w-full px-6 pb-1 pt-1 flex flex-row gap-3 cursor-default",
+            "group relative w-full px-6 pb-1 pt-1 flex flex-row gap-3 cursor-default",
             selected ? "bg-primary/10" : "hover:bg-black/5"
         )}
     >
+        <MessageToolbar selected={selected} selectedCount={selectedCount} onToggle={onToggleSelect} onClear={onClearSelection} />
         {compact
             ? <div className="w-10 shrink-0 mt-0.5 text-center text-[10px] leading-5 text-muted-foreground opacity-0 group-hover:opacity-100">
                 <MessageTime date={message.createdAt} clock />
@@ -232,4 +240,19 @@ function MessageTime({ date, clock = false, className }: { date: Date | string, 
     >
         {clock ? formatClock(value) : formatMessageTime(value, now)}
     </time>
+}
+
+function MessageToolbar({selected, selectedCount, onToggle, onClear}: {selected: boolean, selectedCount: number, onToggle?: () => void, onClear?: () => void}) {
+    return <div
+        onClick={ev => ev.stopPropagation()}
+        onMouseDown={ev => ev.stopPropagation()}
+        className="absolute -top-4 right-6 z-10 flex flex-row items-center gap-0.5 rounded-md border bg-background p-0.5 shadow-sm opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
+    >
+        <Button size={"icon-sm"} variant={"ghost"} title={selected ? "Deselect" : "Select"} onClick={onToggle}>
+            <SquareDashed className={selected ? "text-primary" : undefined} />
+        </Button>
+        {selectedCount > 0 && <Button size={"icon-sm"} variant={"ghost"} title="Clear selection" onClick={onClear}>
+            <SquareDashedX />    
+        </Button>}
+    </div>
 }
