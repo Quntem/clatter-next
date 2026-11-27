@@ -332,6 +332,65 @@ export const channelsRouter = t.router({
             return deleted
         }),
 
+    deleteMessage: authProcedure
+        .input(z.object({
+            channelId: z.string(),
+            messageIds: z.array(z.string()).min(1).max(100)
+        }))
+        .mutation(async (opts) => {
+            const messageIds = [...new Set(opts.input.messageIds)]
+
+            const channel = await prisma.channel.findUnique({
+                where: { id: opts.input.channelId },
+                include: {
+                    members: true,
+                    workspace: { include: { memberships: true } }
+                }
+            })
+
+            if (!channel) {
+                throw new TRPCError({ message: "Channel not found", code: "NOT_FOUND" });
+            }
+
+            const membership = channel.workspace.memberships.find(
+                member => member.userId === opts.ctx.user.id
+            );
+
+            if (!membership) {
+                throw new TRPCError({ message: "Unauthorized", code: "UNAUTHORIZED" });
+            }
+
+            const channelMembership = channel.members.find(
+                member => member.userId === membership.id
+            );
+
+            if (!channelMembership) {
+                throw new TRPCError({ message: "Unauthorized", code: "UNAUTHORIZED" });
+            }
+
+            const messages = await prisma.message.findMany({
+                where: { id: { in: messageIds }, channelId: channel.id },
+                select: { id: true, sentById: true }
+            })
+
+            if (messages.length !== messageIds.length) {
+                throw new TRPCError({ message: "Message not found", code: "NOT_FOUND" });
+            }
+
+            const ownsAll = messages.every(message => message.sentById === membership.id)
+            const isModerator = membership.role !== "MEMBER"
+
+            if (!ownsAll && !isModerator) {
+                throw new TRPCError({ message: "Unauthorized", code: "FORBIDDEN" });
+            }
+
+            await prisma.message.deleteMany({
+                where: { id: { in: messageIds }, channelId: channel.id }
+            })
+
+            return { deletedIds: messageIds }
+        }),
+
     removeUser: authProcedure
         .input(z.object({membershipId: z.string()}))
         .mutation(async (opts) => {

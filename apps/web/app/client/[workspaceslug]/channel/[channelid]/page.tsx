@@ -5,12 +5,13 @@ import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@workspace/ui/c
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { Separator } from "@workspace/ui/components/separator";
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@workspace/ui/components/ui/emoji-picker";
-import { Check, PlusIcon, SendIcon, SmileIcon, SquareDashed, SquareDashedPlus, SquareDashedX, User, UserIcon, X } from "lucide-react";
+import { PlusIcon, SendIcon, SmileIcon, SquareDashed, SquareDashedX, Trash2, User } from "lucide-react";
 import React, { use, useEffect, useMemo, useState } from "react";
 import { useChannel, useMembership, useWorkspace } from "@/lib/queries";
 import { setLastChannel } from "@/lib/lastChannel";
 import { formatClock, formatMessageTime, useNow } from "@/lib/time";
 import { cn } from "@workspace/ui/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 
 export default function({params}: {params: Promise<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
@@ -31,12 +32,16 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
         return channel.isPlaceholderData ? [] : sortMessages([...fetched, ...liveMessages])
     }, [channelMessages, channel.isPlaceholderData, liveMessages])
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-    const [anchorId, setAnchorId] = useState<string | null>(null)
     const selectedMessages = useMemo(() => messages.filter(item => selectedIds.has(item.id)), [messages, selectedIds])
+    const [pendingDelete, setPendingDelete] = useState<MessageView[]>([])
+    const utils = trpc.useUtils()
+    const [anchorId, setAnchorId] = useState<string | null>(null)
     const clearSelection = () => {
         setSelectedIds(new Set())
         setAnchorId(null)
     }
+    const deleteTargets = (id: string) => selectedIds.has(id) ? selectedMessages : messages.filter(item => item.id === id)
+    const canDeleteFor = (id: string) => deleteTargets(id).every(item => item.sentById === membership.data?.id)
     const selectMessage = (id: string, ev: React.MouseEvent) => {
         if (window.getSelection()?.toString()) return
         const multi = ev.ctrlKey || ev.metaKey
@@ -88,6 +93,18 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
         }
     })
     const sendMessageMutation = trpc.channel.sendMessage.useMutation()
+    const deleteMessagesMutation = trpc.channel.deleteMessage.useMutation({
+        onSuccess: (_, variables) => {
+            const removed = new Set(variables.messageIds)
+            utils.channel.get.setData({id: channelid}, old => old && {
+                ...old,
+                messages: old.messages.filter(item => !removed.has(item.id))
+            })
+            setLiveMessages(current => current.filter(item => !removed.has(item.id)))
+            clearSelection()
+            setPendingDelete([])
+        }
+    })
     return <div className="flex h-full w-full flex-col">
         <div className="flex-1 flex flex-col py-4">
             <div className="flex-1 flex flex-col px-6 pb-4">
@@ -99,7 +116,17 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
                 <Separator />
             </div>
             {messages?.map((item, index) => {
-                return <MessageItem key={item.id} message={item} compact={(index !== 0) && (messages[index - 1]?.sentById == item.sentById)} selected={selectedIds.has(item.id)} selectedCount={selectedIds.size} onSelect={ev => selectMessage(item.id, ev)} onToggleSelect={() => toggleMessage(item.id)} onClearSelection={clearSelection} />
+                return <MessageItem
+                    key={item.id}
+                    message={item}
+                    compact={(index !== 0) && (messages[index - 1]?.sentById == item.sentById)}
+                    selected={selectedIds.has(item.id)}
+                    selectedCount={selectedIds.size}
+                    onSelect={ev => selectMessage(item.id, ev)}
+                    onToggleSelect={() => toggleMessage(item.id)}
+                    onClearSelection={clearSelection}
+                    onDelete={canDeleteFor(item.id) ? () => setPendingDelete(deleteTargets(item.id)) : undefined}
+                />
             })}
             {/* <MessageItem />
             <MessageItem compact /> */}
@@ -160,6 +187,28 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
                 </InputGroupAddon>
             </InputGroup> : <JoinChanelRow channel={channel} workspace={workspace} messagesListen={messagesListen} />}
         </div>
+        <Dialog open={pendingDelete.length > 0} onOpenChange={open => { if (!open) setPendingDelete([]) }}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Delete {pendingDelete.length === 1 ? "message" : `${pendingDelete.length} messages`}?</DialogTitle>
+                    <DialogDescription>This can't be undone.</DialogDescription>
+                </DialogHeader>
+                {deleteMessagesMutation.error && <div className="text-sm text-destructive">{deleteMessagesMutation.error.message}</div>}
+                <DialogFooter>
+                    <Button variant={"ghost"} onClick={() => setPendingDelete([])}>Cancel</Button>
+                    <Button
+                        variant={"destructive"}
+                        disabled={deleteMessagesMutation.isPending}
+                        onClick={() => deleteMessagesMutation.mutate({
+                            channelId: channelid,
+                            messageIds: pendingDelete.map(item => item.id)
+                        })}
+                    >
+                        Delete
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
 }
 
@@ -196,7 +245,7 @@ function JoinChanelRow({channel, workspace, messagesListen}: {channel: {data: an
     </div>
 }
 
-function MessageItem({compact=false, message, selected=false, selectedCount=0, onSelect, onToggleSelect, onClearSelection}: {compact?: boolean, message: MessageView, selected?: boolean, selectedCount?: number, onSelect?: (ev: React.MouseEvent) => void, onToggleSelect?: () => void, onClearSelection?: () => void}) {
+function MessageItem({compact=false, message, selected=false, selectedCount=0, onSelect, onToggleSelect, onClearSelection, onDelete}: {compact?: boolean, message: MessageView, selected?: boolean, selectedCount?: number, onSelect?: (ev: React.MouseEvent) => void, onToggleSelect?: () => void, onClearSelection?: () => void, onDelete?: () => void}) {
     return <div
         data-selected={selected}
         onClick={onSelect}
@@ -206,7 +255,7 @@ function MessageItem({compact=false, message, selected=false, selectedCount=0, o
             selected ? "bg-primary/10" : "hover:bg-black/5"
         )}
     >
-        <MessageToolbar selected={selected} selectedCount={selectedCount} onToggle={onToggleSelect} onClear={onClearSelection} />
+        <MessageToolbar selected={selected} selectedCount={selectedCount} onToggle={onToggleSelect} onClear={onClearSelection} onDelete={onDelete} />
         {compact
             ? <div className="w-10 shrink-0 mt-0.5 text-center text-[10px] leading-5 text-muted-foreground opacity-0 group-hover:opacity-100">
                 <MessageTime date={message.createdAt} clock />
@@ -242,12 +291,15 @@ function MessageTime({ date, clock = false, className }: { date: Date | string, 
     </time>
 }
 
-function MessageToolbar({selected, selectedCount, onToggle, onClear}: {selected: boolean, selectedCount: number, onToggle?: () => void, onClear?: () => void}) {
+function MessageToolbar({selected, selectedCount, onToggle, onClear, onDelete}: {selected: boolean, selectedCount: number, onToggle?: () => void, onClear?: () => void, onDelete?: () => void}) {
     return <div
         onClick={ev => ev.stopPropagation()}
         onMouseDown={ev => ev.stopPropagation()}
         className="absolute -top-4 right-6 z-10 flex flex-row items-center gap-0.5 rounded-md border bg-background p-0.5 shadow-sm opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
     >
+        {onDelete && <Button size={"icon-sm"} variant={"ghost"} title={selected && selectedCount > 1 ? `Delete ${selectedCount} messages` : `Delete message`} className={"text-destructive"} onClick={onDelete}>
+            <Trash2 />
+        </Button>}
         <Button size={"icon-sm"} variant={"ghost"} title={selected ? "Deselect" : "Select"} onClick={onToggle}>
             <SquareDashed className={selected ? "text-primary" : undefined} />
         </Button>
