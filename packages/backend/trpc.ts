@@ -4,7 +4,7 @@ import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone'
 import { VerifySession } from 'keystone-lib';
 import { prisma } from './prisma';
 
-const DEV_AUTH = process.env.NODE_ENV !== "production" && process.env.DEV_AUTH === "true"
+export const DEV_AUTH = process.env.NODE_ENV !== "production" && process.env.DEV_AUTH === "true"
 if (DEV_AUTH) console.warn("[auth] DEV_AUTH enabled: dev: session tokens are accepted")
 
 function parseDevSession(token: string) {

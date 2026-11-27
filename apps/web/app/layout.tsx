@@ -4,6 +4,7 @@ import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils";
 import { TooltipProvider } from "@workspace/ui/components/tooltip";
+import { DevAuthBadge } from "@/components/dev-auth-badge";
 
 const figtree = Figtree({
   subsets: ["latin"],
@@ -31,6 +32,7 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider><TooltipProvider>{children}</TooltipProvider></ThemeProvider>
+        <DevAuthBadge />
       </body>
     </html>
   )

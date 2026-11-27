@@ -1,7 +1,6 @@
-
-import { authProcedure, t } from "../trpc";
+import { authProcedure, DEV_AUTH, t } from "../trpc";
 import { prisma } from "../prisma";
-import { email, z } from "zod";
+import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { ChannelVisibility } from "../generated/prisma/enums";
 
@@ -519,6 +518,49 @@ export const workspaceRouter = t.router({
             return modified
         }),
     
+    addDevMember: authProcedure
+        .input(z.object({
+            workspaceId: z.string(),
+            id: z.string().regex(/^dev_[a-z0-9]+$/),
+            name: z.string().trim().min(1),
+        }))
+        .mutation(async (opts) => {
+            if (!DEV_AUTH) {
+                throw new TRPCError({ message: "Dev auth is disabled", code: "FORBIDDEN" })
+            }
+
+            const own = await prisma.workspaceMembership.findUnique({
+                where: {
+                    userId_workspaceId: {
+                        userId: opts.ctx.user.id,
+                        workspaceId: opts.input.workspaceId
+                    }
+                }
+            })
+            if (!own || own.deactivated || own.role === "MEMBER") {
+                throw new TRPCError({ message: "Unauthorized", code: "UNAUTHORIZED" })
+            }
+
+            const { id, name, workspaceId } = opts.input
+            const email = `${id}@dev.local`
+            const user = await prisma.user.upsert({
+                where: { keystoneId: id },
+                update: {},
+                create: { keystoneId: id, username: id, email, keystoneObject: { id, name, username: id, email } },
+            })
+
+            return prisma.workspaceMembership.upsert({
+                where: {
+                    userId_workspaceId: {
+                        userId: user.id,
+                        workspaceId
+                    }
+                },
+                update: { deactivated: false },
+                create: { userId: user.id, workspaceId, name, role: "MEMBER" },
+            })
+        }),
+
     updateMembership: authProcedure
         .input(z.object({name: z.string().optional(), profilePicture: z.string().optional(), workspaceId: z.string()}))
         .mutation(async (opts) => {

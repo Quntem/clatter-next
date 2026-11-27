@@ -1,16 +1,19 @@
 "use client"
 import { skipToken } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
-import { CheckIcon, MoreVerticalIcon, UserPlusIcon, XIcon } from "lucide-react";
+import { CheckIcon, FlaskConical, MoreVerticalIcon, UserPlusIcon, XIcon } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
 import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { InviteUserDialog } from "@/components/client/inviteUserDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@workspace/ui/components/dropdown-menu";
+import { DEV_AUTH_ENABLED } from "@/lib/devAuth";
+import { AddTestUserDialog } from "@/components/client/addTestUserDialog";
 
 export default function AdminHome({params}: {params: Promise<{workspaceslug: string}>}) {
     const {workspaceslug} = use(params)
     const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false)
+    const [testUserDialogOpen, setTestUserDialogOpen] = useState(false)
     const workspace = trpc.workspace.get.useQuery({slug: workspaceslug})
     const membership = trpc.workspace.getMembership.useQuery(workspace.data ? {workspaceId: workspace.data.id} : skipToken)
     const deactivate = trpc.workspace.modifyUserActivation.useMutation({
@@ -20,16 +23,20 @@ export default function AdminHome({params}: {params: Promise<{workspaceslug: str
     })
     return <div className="p-8">
         <InviteUserDialog open={inviteUserDialogOpen} setOpen={setInviteUserDialogOpen} workspace={workspace} />
+        {DEV_AUTH_ENABLED && <AddTestUserDialog open={testUserDialogOpen} setOpen={setTestUserDialogOpen} workspace={workspace} />}
         <div className="w-full flex flex-row items-center">
             <h1 className="text-2xl font-medium">Members</h1>
             <div className="flex-1" />
+            {DEV_AUTH_ENABLED && <Button variant={"outline"} className={"mr-2"} onClick={() => setTestUserDialogOpen(true)}>
+                <FlaskConical /> Add Test User    
+            </Button>}
             <Button onClick={() => {
                 setInviteUserDialogOpen(true)
             }}>
                 <UserPlusIcon /> Invite Member
             </Button>
         </div>
-        <div className="w-full mt-6 rounded-lg overflow-hidden border-1">
+        <div className="w-full mt-6 rounded-lg overflow-hidden border">
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -38,7 +45,7 @@ export default function AdminHome({params}: {params: Promise<{workspaceslug: str
                         <TableHead>Role</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Access</TableHead>
-                        <TableHead className="w-[35px]" />
+                        <TableHead className="w-8.75" />
                     </TableRow>
                 </TableHeader>
                 <TableBody>

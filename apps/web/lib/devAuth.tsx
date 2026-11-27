@@ -68,14 +68,14 @@ export function useDevAccounts(): DevSession[] {
   return useDevStore().accounts
 }
 
-export function createDevAccount(name: string): DevSession {
+export function createDevAccount(name: string, activate = true): DevSession {
   const id = "dev_" + crypto.randomUUID().replaceAll("-", "").slice(0, 12)
   const session: DevSession = {
     sessionId: `dev:${id}:${encodeURIComponent(name)}`,
     user: { id, name, email: `${id}@dev.local` },
   }
   const store = parse(readRaw())
-  write({ active: id, accounts: [...store.accounts, session] })
+  write({ active: activate ? id : store.active, accounts: [...store.accounts, session] })
   return session
 }
 
