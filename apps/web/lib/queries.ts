@@ -1,20 +1,25 @@
 "use client";
 
 import { skipToken } from "@tanstack/react-query";
+import type { TRPCClientErrorLike } from "@trpc/client";
+import type { UseTRPCQueryResult } from "@trpc/react-query/shared";
+import type { AppRouter, RouterOutputs } from "@workspace/backend/router";
 import { trpc } from "./trpc";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { getLastChannel } from "./lastChannel";
 
-export function useWorkspace(slug: string): ReturnType<typeof trpc.workspace.get.useQuery> {
+type QueryResult<TData> = UseTRPCQueryResult<TData, TRPCClientErrorLike<AppRouter>>;
+
+export function useWorkspace(slug: string): QueryResult<RouterOutputs["workspace"]["get"]> {
   return trpc.workspace.get.useQuery({slug}, { staleTime: 30000 })
 }
 
-export function useMembership(workspaceId: string | undefined): ReturnType<typeof trpc.workspace.getMembership.useQuery> {
+export function useMembership(workspaceId: string | undefined): QueryResult<RouterOutputs["workspace"]["getMembership"]> {
   return trpc.workspace.getMembership.useQuery(workspaceId ? {workspaceId} : skipToken, { staleTime: 30000 })
 }
 
-export function useChannel(channelId: string): ReturnType<typeof trpc.channel.get.useQuery> {
+export function useChannel(channelId: string): QueryResult<RouterOutputs["channel"]["get"]> {
   return trpc.channel.get.useQuery({id: channelId}, { staleTime: 5000 })
 }
 
