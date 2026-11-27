@@ -6,10 +6,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/component
 import { Separator } from "@workspace/ui/components/separator";
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@workspace/ui/components/ui/emoji-picker";
 import { PlusIcon, SendIcon, SmileIcon, User, UserIcon } from "lucide-react";
-import { use, useEffect, useMemo, useState } from "react";
+import React, { use, useEffect, useMemo, useState } from "react";
 import { useChannel, useMembership, useWorkspace } from "@/lib/queries";
 import { setLastChannel } from "@/lib/lastChannel";
 import { formatClock, formatMessageTime, useNow } from "@/lib/time";
+import { cn } from "@workspace/ui/lib/utils";
 
 export default function({params}: {params: Promise<{workspaceslug: string, channelid: string}>}) {
     const { workspaceslug, channelid } = use(params)
@@ -29,6 +30,45 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
         const fetched = (channelMessages ?? []) as MessageView[]
         return channel.isPlaceholderData ? [] : sortMessages([...fetched, ...liveMessages])
     }, [channelMessages, channel.isPlaceholderData, liveMessages])
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+    const [anchorId, setAnchorId] = useState<string | null>(null)
+    const selectedMessages = useMemo(() => messages.filter(item => selectedIds.has(item.id)), [messages, selectedIds])
+    const clearSelection = () => {
+        setSelectedIds(new Set())
+        setAnchorId(null)
+    }
+    const selectMessage = (id: string, ev: React.MouseEvent) => {
+        if (window.getSelection()?.toString()) return
+        const multi = ev.ctrlKey || ev.metaKey
+        if (ev.shiftKey && anchorId) {
+            const from = messages.findIndex(item => item.id === anchorId)
+            const to = messages.findIndex(item => item.id === id)
+            if (from !== -1 && to !== -1) {
+                const [start, end] = from < to ? [from, to] : [to, from]
+                setSelectedIds(new Set(messages.slice(start, end + 1).map(item => item.id)))
+                return
+            }
+        }
+        setSelectedIds(current => {
+            const next = new Set(multi ? current : [])
+            if (current.has(id) && (multi || current.size === 1)) {
+                next.delete(id)
+            } else {
+                next.add(id)
+            }
+            return next
+        })
+        setAnchorId(id)
+    }
+    useEffect(() => {
+        const onKeyDown = (ev: KeyboardEvent) => {
+            if (ev.key === "Escape") {
+                clearSelection()
+            }
+        }
+        window.addEventListener("keydown", onKeyDown)
+        return () => window.removeEventListener("keydown", onKeyDown)
+    })
     const channelTitle = !channel.data || channel.isPlaceholderData ? "" : channel.data.visibility !== "DIRECT" ? "#" + channel.data.name : (channel.data.members.filter(item => item.userId !== membership.data?.id)[0]?.membership.name ?? "")
     const messagesListen = trpc.channel.listenMessages.useSubscription({channelId: channelid}, {
         onData: (data) => {
@@ -47,12 +87,17 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
                 <Separator />
             </div>
             {messages?.map((item, index) => {
-                return <MessageItem key={item.id} message={item} compact={(index !== 0) && (messages[index - 1]?.sentById == item.sentById)} />
+                return <MessageItem key={item.id} message={item} compact={(index !== 0) && (messages[index - 1]?.sentById == item.sentById)} selected={selectedIds.has(item.id)} onSelect={ev => selectMessage(item.id, ev)} />
             })}
             {/* <MessageItem />
             <MessageItem compact /> */}
         </div>
         <div className={`w-full p-6 pt-0 ${!ready || isMember ? "" : " border-t"}`}>
+            {selectedMessages.length > 0 && <div className="mb-3 flex flex-row items-center gap-2 rounded-md border bg-muted px-3 py-1.5 text-sm">
+                <span>{selectedMessages.length} selected</span>
+                <div className="flex-1" />
+                <Button size={"sm"} variant={"ghost"} onClick={clearSelection}>Clear</Button>
+            </div>}
             {!ready ? null : isMember ? <InputGroup>
                 <InputGroupTextarea value={inputContent} onChange={ev => setInputContent(ev.target.value)} onKeyDown={(ev) => {
                     if (!ev.shiftKey && ev.key == "Enter") {
@@ -144,8 +189,16 @@ function JoinChanelRow({channel, workspace, messagesListen}: {channel: {data: an
     </div>
 }
 
-function MessageItem({compact=false, message}: {compact?: boolean, message: MessageView}) {
-    return <div className="group w-full px-6 pb-1 pt-1 hover:bg-black/5 flex flex-row gap-3">
+function MessageItem({compact=false, message, selected=false, onSelect}: {compact?: boolean, message: MessageView, selected?: boolean, onSelect?: (ev: React.MouseEvent) => void}) {
+    return <div
+        data-selected={selected}
+        onClick={onSelect}
+        onMouseDown={ev => { if (ev.shiftKey) ev.preventDefault() }}
+        className={cn(
+            "group w-full px-6 pb-1 pt-1 flex flex-row gap-3 cursor-default",
+            selected ? "bg-primary/10" : "hover:bg-black/5"
+        )}
+    >
         {compact
             ? <div className="w-10 shrink-0 mt-0.5 text-center text-[10px] leading-5 text-muted-foreground opacity-0 group-hover:opacity-100">
                 <MessageTime date={message.createdAt} clock />
