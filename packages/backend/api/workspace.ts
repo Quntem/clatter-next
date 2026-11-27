@@ -1,6 +1,6 @@
 import { authProcedure, DEV_AUTH, t } from "../trpc";
 import { prisma } from "../prisma";
-import { z } from "zod";
+import { email, z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { ChannelVisibility } from "../generated/prisma/enums";
 
@@ -521,8 +521,7 @@ export const workspaceRouter = t.router({
     addDevMember: authProcedure
         .input(z.object({
             workspaceId: z.string(),
-            id: z.string().regex(/^dev_[a-z0-9]+$/),
-            name: z.string().trim().min(1),
+            email: z.string().trim()
         }))
         .mutation(async (opts) => {
             if (!DEV_AUTH) {
@@ -541,13 +540,12 @@ export const workspaceRouter = t.router({
                 throw new TRPCError({ message: "Unauthorized", code: "UNAUTHORIZED" })
             }
 
-            const { id, name, workspaceId } = opts.input
-            const email = `${id}@dev.local`
-            const user = await prisma.user.upsert({
-                where: { keystoneId: id },
-                update: {},
-                create: { keystoneId: id, username: id, email, keystoneObject: { id, name, username: id, email } },
-            })
+            const { email, workspaceId } = opts.input
+            const user = await prisma.user.findUnique({ where: { email } })
+            if (!user || !user.keystoneId.startsWith("dev_")) {
+                throw new TRPCError({ message: "No dev account with that email.", code: "NOT_FOUND" })
+            }
+            const name = (user.keystoneObject as { name?: string } | null)?.name ?? user.username ?? email
 
             return prisma.workspaceMembership.upsert({
                 where: {

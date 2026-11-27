@@ -8,30 +8,28 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 
 export function AddTestUserDialog({open, setOpen, workspace}: {open: boolean, setOpen: (data: boolean) => void, workspace: {data: any; refetch: () => Promise<unknown>}}) {
-  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
   const addDevMember = trpc.workspace.addDevMember.useMutation({
     onSuccess: () => {
       workspace.refetch()
-      setName("")
+      setEmail("")
       setOpen(false)
     }
   })
-  const submit = () => {
-    const account = createDevAccount(name.trim(), false)
-    addDevMember.mutate({ workspaceId: workspace.data.id, id: account.user.id, name: account.user.name })
-  }
   return <Dialog open={open} onOpenChange={setOpen}>
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Add Test User To "{workspace?.data?.name}"</DialogTitle>
       </DialogHeader>
       <Field>
-        <FieldTitle>Name</FieldTitle>
-        <Input placeholder="Test user name" value={name} onChange={ev => setName(ev.target.value)} />
+        <FieldTitle>Email</FieldTitle>
+        <Input placeholder="dev_xxxxxxxxxxxx@dev.local" value={email} onChange={ev => setEmail(ev.target.value)} />
       </Field>
       {addDevMember.error && <p className="text-sm text-destructive">{addDevMember.error.message}</p>}
       <DialogFooter>
-        <Button disabled={!name.trim() || addDevMember.isPending} onClick={submit}>
+        <Button disabled={!email.trim() || addDevMember.isPending} onClick={() => {
+          addDevMember.mutate({ workspaceId: workspace.data.id, email })
+        }}>
           <Plus />Add Test User
         </Button>
       </DialogFooter>
