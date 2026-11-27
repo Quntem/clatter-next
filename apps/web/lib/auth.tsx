@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, httpSubscriptionLink, splitLink } from "@trpc/client";
 import { EventSourcePolyfill } from "event-source-polyfill";
 import { SplashScreen } from "@/components/client/SplashScreen";
+import { useAppAuth } from "./appAuth";
 
 
 type authContextType = {
@@ -16,7 +17,7 @@ const authContext = createContext<authContextType>({
 })
 
 export function AuthProvider({children}: {children: React.JSX.Element}) {
-    const authState = useAuth({ keystoneUrl: process.env.NEXT_PUBLIC_KEYSTONE_URL!, appId: process.env.NEXT_PUBLIC_APP_ID! })
+    const authState = useAppAuth()
     useEffect(() => {
         if (!authState?.loaded) return
         if (!authState?.data?.sessionId) {

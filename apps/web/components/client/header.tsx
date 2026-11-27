@@ -13,6 +13,7 @@ import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog"
 import { setWorkspaceTheme, useWorkspaceTheme, WorkspaceTheme } from "@/lib/workspaceTheme"
 import { useReadyNavigation } from "@/lib/queries"
+import { signOutDevAccount } from "@/lib/devAuth"
 
 export function ClientHeader() {
     const theme = useTheme()
@@ -40,6 +41,7 @@ export function ClientHeader() {
         { slug: workspaceSlug ?? "", query: searchValue.trim() },
         { enabled: commandDialogOpen && !!workspaceSlug && searchValue.trim().length > 0 }
     )
+    const isDevAccount = !!auth.authState?.data?.sessionId?.startsWith("dev:")
     return <header className="bg-muted h-10 w-full border-b relative flex flex-row items-center">
         {/* <Button variant={"ghost"}>
             <p className="font-bold">Clatter</p> Web App
@@ -182,7 +184,7 @@ export function ClientHeader() {
                     </AvatarFallback>
                 </Avatar>} />} />
                 <TooltipContent>
-                    {auth.authState?.data?.user.name} (Quntem Account)
+                    {auth.authState?.data?.user.name} ({isDevAccount ? "Test Account" : "Quntem Account"})
                 </TooltipContent>
             </Tooltip>
             <DropdownMenuContent>
@@ -196,6 +198,11 @@ export function ClientHeader() {
                     User Settings
                 </DropdownMenuItem> */}
                 <DropdownMenuItem variant="destructive" onClick={() => {
+                    if (isDevAccount) {
+                        signOutDevAccount()
+                        window.location.assign("/auth")
+                        return
+                    }
                     window.open(process.env.NEXT_PUBLIC_KEYSTONE_URL + "/auth/logout?redirectTo=" + encodeURIComponent(window.location.origin))
                 }}>
                     <LogOutIcon />

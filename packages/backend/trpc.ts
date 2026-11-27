@@ -4,6 +4,26 @@ import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone'
 import { VerifySession } from 'keystone-lib';
 import { prisma } from './prisma';
 
+const DEV_AUTH = process.env.NODE_ENV !== "production" && process.env.DEV_AUTH === "true"
+if (DEV_AUTH) console.warn("[auth] DEV_AUTH enabled: dev: session tokens are accepted")
+
+function parseDevSession(token: string) {
+    if (!DEV_AUTH || !token.startsWith("dev:")) return null
+    const [, id, ...rest] = token.split(":")
+    if (!id?.startsWith("dev_") || !rest.length) return null
+    try {
+        const name = decodeURIComponent(rest.join(":"))
+        return {
+            id,
+            name,
+            username: id,
+            email: `${id}@dev.local`
+        }
+    } catch {
+        return null
+    }
+}
+
 type AuthMeta = {
     requiresAuth: boolean;
 };
@@ -44,6 +64,21 @@ export const authProcedure = t.procedure.use(async (opts) => {
             code: 'UNAUTHORIZED',
             message: 'No session ID provided',
         });
+    }
+
+    const devUser = parseDevSession(sessionId)
+    if (devUser) {
+        const user = await prisma.user.upsert({
+            where: { keystoneId: devUser.id },
+            update: {},
+            create: {
+                keystoneId: devUser.id,
+                username: devUser.username,
+                email: devUser.email,
+                keystoneObject: devUser,
+            },
+        })
+        return opts.next({ ctx: { ...opts.ctx, session: { user: devUser }, user } })
     }
 
     let session;
