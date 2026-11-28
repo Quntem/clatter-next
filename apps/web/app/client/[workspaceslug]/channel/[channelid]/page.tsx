@@ -128,7 +128,7 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
                 return <MessageItem
                     key={item.id}
                     message={item}
-                    compact={(index !== 0) && (messages[index - 1]?.sentById == item.sentById)}
+                    compact={shouldCompact(messages[index - 1], item)}
                     selected={selectedIds.has(item.id)}
                     selectedCount={selectedIds.size}
                     onSelect={ev => selectMessage(item.id, ev)}
@@ -286,6 +286,11 @@ function MessageItem({compact=false, message, selected=false, selectedCount=0, o
             })}</div>
         </div>
     </div>
+}
+
+function shouldCompact(prev: MessageView | undefined, message: MessageView) {
+    if (!prev || prev.sentById !== message.sentById) return false
+    return new Date(message.createdAt).getTime() - new Date(prev.createdAt).getTime() < 3600000
 }
 
 function MessageTime({ date, clock = false, className }: { date: Date | string, clock?: boolean, className?: string }) {
