@@ -5,7 +5,7 @@ import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@workspace/ui/c
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { Separator } from "@workspace/ui/components/separator";
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@workspace/ui/components/ui/emoji-picker";
-import { PlusIcon, SendIcon, SmileIcon, SquareDashed, SquareDashedX, Trash2, User } from "lucide-react";
+import { Eye, PlusIcon, SendIcon, SmileIcon, SquareDashed, SquareDashedX, Trash2, User } from "lucide-react";
 import React, { use, useEffect, useMemo, useState } from "react";
 import { useChannel, useMembership, useWorkspace } from "@/lib/queries";
 import { setLastChannel } from "@/lib/lastChannel";
@@ -35,6 +35,29 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
     const selectedMessages = useMemo(() => messages.filter(item => selectedIds.has(item.id)), [messages, selectedIds])
     const [pendingDelete, setPendingDelete] = useState<MessageView[]>([])
     const utils = trpc.useUtils()
+    const markRead = trpc.channel.markRead.useMutation()
+    const readReceipts = isMember && !!channel.data?.workspace?.readReceipts
+    const latestId = messages[messages.length - 1]?.id
+    useEffect(() => {
+        if (!readReceipts || !latestId || document.hidden) return
+        markRead.mutate({ channelId: channelid })
+    }, [readReceipts, latestId, channelid])
+    useEffect(() => {
+        if (!readReceipts) return
+        const onVisible = () => {
+            if (!document.hidden) markRead.mutate({ channelId: channelid })
+        }
+        document.addEventListener("visibilitychange", onVisible)
+        return () => document.removeEventListener("visibilitychange", onVisible)
+    }, [readReceipts, channelid])
+    const seenBy = useMemo(() => {
+        const last = messages[messages.length - 1]
+        if (!readReceipts || !last) return []
+        const sent = new Date(last.createdAt).getTime()
+        return (channel.data?.members ?? [])
+            .filter(m => m.userId !== last.sentById && m.userId !== membership.data?.id && m.lastReadAt && new Date(m.lastReadAt).getTime() >= sent)
+            .map(m => m.membership.name)
+    }, [messages, channel.data, readReceipts, membership.data?.id])
     const [anchorId, setAnchorId] = useState<string | null>(null)
     const clearSelection = () => {
         setSelectedIds(new Set())
@@ -101,6 +124,11 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
         onData: (event) => {
             if (event.type === "delete") {
                 removeMessages(event.messageIds)
+            } else if (event.type === "read") {
+                utils.channel.get.setData({id: channelid}, old => old && {
+                    ...old,
+                    members: old.members.map(m => m.userId === event.membershipId ? {...m, lastReadAt: new Date(event.readAt)} : m)
+                })
             } else {
                 setLiveMessages(current => [...current, event.message as MessageView])
             }
@@ -137,6 +165,11 @@ export default function({params}: {params: Promise<{workspaceslug: string, chann
                     onDelete={canDeleteFor(item.id) ? () => setPendingDelete(deleteTargets(item.id)) : undefined}
                 />
             })}
+            <div className={`relative w-full px-6 pt-0 ${!ready || isMember ? "" : " border-t"}`}>
+                {seenBy.length > 0 && <div className="pointer-events-none absolute bottom-full right-6 text-xs leading-4 flex flex-row items-center gap-1 text-muted-foreground">
+                    <Eye size={12} /> {seenBy.length > 3 ? `${seenBy.slice(0, 3).join(", ")} +${seenBy.length - 3}` : seenBy.join(", ")}
+                </div>}
+            </div>
             {/* <MessageItem />
             <MessageItem compact /> */}
         </div>

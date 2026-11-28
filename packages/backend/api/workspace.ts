@@ -426,7 +426,7 @@ export const workspaceRouter = t.router({
         }),
 
     update: authProcedure
-        .input(z.object({workspaceId: z.string(), image: z.string().optional(), name: z.string().optional()}))
+        .input(z.object({workspaceId: z.string(), image: z.string().optional(), name: z.string().optional(), readReceipts: z.boolean().optional()}))
         .mutation(async (opts) => {
             const workspace = await prisma.workspace.findUnique({
                 where: {
@@ -467,7 +467,8 @@ export const workspaceRouter = t.router({
                 },
                 data: {
                     image: opts.input.image,
-                    name: opts.input.name
+                    name: opts.input.name,
+                    readReceipts: opts.input.readReceipts
                 }
             })
 

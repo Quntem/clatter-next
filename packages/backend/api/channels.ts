@@ -8,7 +8,7 @@ import type { Message } from "../generated/prisma/client";
 
 const ee = new EventEmitter()
 
-type ChannelEvent = | {type: "message", channelId: string, message: Message } | { type: "delete", channelId: string, messageIds: string[] }
+type ChannelEvent = | {type: "message", channelId: string, message: Message } | { type: "delete", channelId: string, messageIds: string[] } | { type: "read", channelId: string, membershipId: string, readAt: Date }
 
 export const channelsRouter = t.router({
     create: authProcedure
@@ -81,6 +81,11 @@ export const channelsRouter = t.router({
                 include: {
                     subChannels: true,
                     parentChannel: true,
+                    workspace: {
+                        select: {
+                            readReceipts: true
+                        }
+                    },
                     members: {
                         include: {
                             membership: {
@@ -157,7 +162,53 @@ export const channelsRouter = t.router({
                 }
             }
 
+            if (!channel.workspace.readReceipts) {
+                channel.members.forEach(member => { member.lastReadAt = null })
+            }
+
             return channel;
+        }),
+    
+    markRead: authProcedure
+        .input(z.object({ channelId: z.string() }))
+        .mutation(async (opts) => {
+            const channel = await prisma.channel.findUnique({
+                where: {
+                    id: opts.input.channelId
+                },
+                include: {
+                    workspace: {
+                        select: {
+                            readReceipts: true
+                        }
+                    }
+                }
+            })
+            if (!channel || !channel.workspace.readReceipts) return null
+
+            const membership = await prisma.workspaceMembership.findFirst({
+                where: {
+                    workspaceId: channel.workspaceId,
+                    userId: opts.ctx.user.id,
+                    deactivated: false
+                }
+            })
+            if (!membership) return null
+
+            const readAt = new Date()
+            const updated = await prisma.channelMembership.updateMany({
+                where: {
+                    channelId: channel.id,
+                    userId: membership.id
+                },
+                data: {
+                    lastReadAt: readAt
+                }
+            })
+            if (updated.count) {
+                ee.emit("channel.event", { type: "read", channelId: channel.id, membershipId: membership.id, readAt } satisfies ChannelEvent)
+            }
+            return readAt
         }),
 
     listenMessages: authProcedure

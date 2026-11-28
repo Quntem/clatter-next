@@ -132,6 +132,7 @@ model ChannelMembership {
   channelId  String
   userId     String
   role       ChannelRole         @default(MEMBER)
+  lastReadAt DateTime?
   channel    Channel             @relation(fields: [channelId], references: [id], onDelete: Cascade)
   membership WorkspaceMembership @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -160,6 +161,7 @@ model Workspace {
   tenantId            String?
   tenant              Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   tenantVisibility    TenantWorkspaceVisibility   @default(PUBLIC)
+  readReceipts        Boolean                     @default(true)
   externalConnections ExternalChannelConnection[]
   invites             WorkspaceInvite[]
 }
