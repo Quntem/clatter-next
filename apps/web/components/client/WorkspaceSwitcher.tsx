@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc"
 import { Button } from "@workspace/ui/components/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui/components/tooltip"
 import { CheckIcon, Layers3Icon, PlusCircleIcon, PlusIcon, XIcon } from "lucide-react"
-import { useState } from "react"
+import React, { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
 import { Input } from "@workspace/ui/components/input"
 import { InputGroup, InputGroupInput, InputGroupText } from "@workspace/ui/components/input-group"
@@ -16,13 +16,45 @@ export function WorkspaceSwitcherSidebar() {
     const workspaces = trpc.workspace.list.useQuery()
     const pathname = usePathname()
     const nav = useReadyNavigation()
+    const utils = trpc.useUtils()
     const [pendingSlug, setPendingSlug] = useState<string | null>(null)
+    const [dragId, setDragId] = useState<string | null>(null)
+    const reorder = trpc.workspace.reorder.useMutation({
+        onSettled: () => workspaces.refetch()
+    })
+
+    const moveWorkspace = (fromId: string, toId: string) => {
+        utils.workspace.list.setData(undefined, old => {
+            if (!old || fromId === toId) return old
+            const from = old.findIndex(item => item.workspaceId === fromId)
+            const to = old.findIndex(item => item.workspaceId === toId)
+            if (from < 0 || to < 0) return old
+            const next = [...old]
+            next.splice(to, 0, next.splice(from, 1)[0]!)
+            return next
+        })
+    }
 
     return <div className="bg-sidebar w-17.5 border-r h-full flex flex-col items-center gap-4 pt-4">
         {workspaces.data?.map(item => {
             const slug = item.workspace.slug
             const active = pendingSlug ? pendingSlug === slug : pathname === `/client/${slug}` || pathname.startsWith(`/client/${slug}/`)
-            return <WorkspaceSwitcherSidebarItem key={slug} workspace={item} active={active} onClick={() => {
+            return <WorkspaceSwitcherSidebarItem key={slug} workspace={item} active={active} dragging={dragId === item.workspaceId} dragProps={{
+                draggable: true,
+                onDragStart: ev => {
+                    ev.dataTransfer.effectAllowed = "move"
+                    ev.dataTransfer.setData("text/plain", item.workspaceId)
+                    setDragId(item.workspaceId)
+                },
+                onDragOver: ev => {
+                    ev.preventDefault()
+                    if (dragId) moveWorkspace(dragId, item.workspaceId)
+                },
+                onDragEnd: () => {
+                    setDragId(null)
+                    reorder.mutate({ workspaceIds: workspaces.data?.map(w => w.workspaceId) ?? [] })
+                }
+            }} onClick={() => {
                 setPendingSlug(slug)
                 nav.toWorkspace(slug).finally(() => setPendingSlug(null))
             }} />
@@ -122,10 +154,10 @@ export function CreateWorkspaceDialog({workspaces}: {workspaces: ReturnType<type
     </>
 }
 
-export function WorkspaceSwitcherSidebarItem({active, onClick, workspace}: {active?: boolean, onClick?: () => void, workspace: {workspace: {name: string; slug: string; image: string | null}}}) {
+export function WorkspaceSwitcherSidebarItem({active, onClick, workspace, dragging, dragProps}: {active?: boolean, onClick?: () => void, workspace: {workspace: {name: string; slug: string; image: string | null}}, dragging?: boolean, dragProps?: React.HTMLAttributes<HTMLDivElement>}) {
     return <Tooltip>
         <TooltipTrigger render={
-            <div className="group relative w-10 h-10 cursor-pointer" onClick={onClick}>
+            <div className={`group relative w-10 h-10 cursor-pointer ${dragging ? "opacity-40" : ""}`} onClick={onClick} {...dragProps}>
                 <div className={`absolute -left-3.5 top-1/2 -translate-y-1/2 w-1 rounded-r-full bg-foreground transition-[height,opacity] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none ${active ? "h-5 opacity-100" : "h-0 opacity-0 group-hover:h-2 group-hover:opacity-100"}`} />
                 <div className={`bg-black w-full h-full overflow-hidden transition-[border-radius,transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none ${active ? "rounded-lg shadow-md" : "rounded-[20px] group-hover:rounded-lg"}`}>
                     <img className="size-full object-cover" draggable={false} src={workspace?.workspace?.image || "/client/assets/wsicon.png"}/>

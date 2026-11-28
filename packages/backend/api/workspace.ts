@@ -14,8 +14,34 @@ export const workspaceRouter = t.router({
                 },
                 include: {
                     workspace: true
-                }
+                },
+                orderBy: [
+                    {
+                        position: "asc"
+                    },
+                    {
+                        workspace: {
+                            createdAt: "asc"
+                        }
+                    }
+                ]
             });
+        }),
+    
+    reorder: authProcedure
+        .input(z.object({ workspaceIds: z.array(z.string()) }))
+        .mutation(async (opts) => {
+            await prisma.$transaction(opts.input.workspaceIds.map((workspaceId, index) =>
+                prisma.workspaceMembership.updateMany({
+                    where: {
+                        userId: opts.ctx.user.id,
+                        workspaceId
+                    },
+                    data: {
+                        position: index
+                    }
+                })
+            ))
         }),
     
     getInvites: authProcedure 
