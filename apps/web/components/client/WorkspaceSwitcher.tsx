@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc"
 import { Button } from "@workspace/ui/components/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui/components/tooltip"
 import { CheckIcon, Layers3Icon, PlusCircleIcon, PlusIcon, XIcon } from "lucide-react"
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
 import { Input } from "@workspace/ui/components/input"
 import { InputGroup, InputGroupInput, InputGroupText } from "@workspace/ui/components/input-group"
@@ -18,6 +18,9 @@ export function WorkspaceSwitcherSidebar() {
     const nav = useReadyNavigation()
     const utils = trpc.useUtils()
     const [pendingSlug, setPendingSlug] = useState<string | null>(null)
+    useEffect(() => {
+        setPendingSlug(null)
+    }, [pathname])
     const [dragId, setDragId] = useState<string | null>(null)
     const reorder = trpc.workspace.reorder.useMutation({
         onSettled: () => workspaces.refetch()
@@ -56,7 +59,7 @@ export function WorkspaceSwitcherSidebar() {
                 }
             }} onClick={() => {
                 setPendingSlug(slug)
-                nav.toWorkspace(slug).finally(() => setPendingSlug(null))
+                nav.toWorkspace(slug)
             }} />
         })}
         <CreateWorkspaceDialog workspaces={workspaces} />
